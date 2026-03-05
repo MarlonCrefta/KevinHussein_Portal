@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { MessageCircle, Ruler, Lock, ArrowRight, Calendar, Clock, CreditCard } from 'lucide-react'
+import { MessageCircle, Ruler, Lock, ArrowRight, Calendar, Clock } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 export default function BookingChoice() {
@@ -117,8 +117,8 @@ export default function BookingChoice() {
                   </h2>
 
                   <p className="text-sm leading-relaxed mb-4" style={{ color: '#A9A3B8' }}>
-                    Alinhamento do projeto, referências e estilo. 
-                    Ao final da aprovação, é cobrado um sinal de <strong style={{ color: '#E6E0D6' }}>R$ 270</strong> para dar sequência.
+                    Primeiro contato para alinhar o projeto, referências e estilo. 
+                    Até 3 encontros gratuitos para definição do projeto.
                   </p>
 
                   {/* Info Tags */}
@@ -130,10 +130,6 @@ export default function BookingChoice() {
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs"
                       style={{ background: 'rgba(139, 92, 246, 0.12)', color: '#C4B5FD', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
                       <Clock size={11} /> 2h por sessão
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs"
-                      style={{ background: 'rgba(139, 92, 246, 0.12)', color: '#C4B5FD', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
-                      <CreditCard size={11} /> Sinal R$ 270
                     </span>
                   </div>
 
