@@ -112,13 +112,12 @@ export default function MyBookings() {
 
   const getReputationConfig = (rep: string) => {
     const configs: Record<string, { icon: typeof Star; label: string; color: string; bg: string }> = {
-      boa: { icon: Star, label: 'Boa Reputação', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-      regular: { icon: Shield, label: 'Regular', color: 'text-blue-400', bg: 'bg-blue-500/10' },
-      vip: { icon: Sparkles, label: 'Cliente VIP', color: 'text-amber-400', bg: 'bg-amber-500/10' },
-      nova: { icon: Star, label: 'Cliente Novo', color: 'text-violet-400', bg: 'bg-violet-500/10' },
-      alerta: { icon: AlertCircle, label: 'Em Alerta', color: 'text-red-400', bg: 'bg-red-500/10' },
+      neutro: { icon: Star, label: 'Cliente Novo', color: 'text-violet-400', bg: 'bg-violet-500/10' },
+      boa: { icon: Shield, label: 'Cliente Regular', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+      alta: { icon: Sparkles, label: 'Cliente VIP', color: 'text-amber-400', bg: 'bg-amber-500/10' },
+      baixa: { icon: AlertCircle, label: 'Em Alerta', color: 'text-red-400', bg: 'bg-red-500/10' },
     }
-    return configs[rep] || configs.nova
+    return configs[rep] || configs.neutro
   }
 
   // ════════════════════════════════════════════════════════════
@@ -139,7 +138,7 @@ export default function MyBookings() {
             style={{ background: 'radial-gradient(ellipse, #8B5CF6 0%, transparent 70%)' }} />
         </div>
 
-        <div className="relative z-10 pt-20 pb-16 px-5 sm:px-8">
+        <div className="relative z-10 pt-24 pb-16 px-5 sm:px-8">
           <div className="max-w-lg mx-auto">
             {/* Back */}
             <motion.button
@@ -169,7 +168,7 @@ export default function MyBookings() {
                     {status.label}
                   </span>
                   <h1 className="text-xl font-bold mt-1" style={{ color: '#E8E4F0' }}>
-                    {selectedBooking.type === 'reuniao' ? 'Reunião Estratégica' : 'Sessão de Tatuagem'}
+                    {selectedBooking.type === 'reuniao' ? 'Reunião Estratégica' : selectedBooking.type === 'teste_anatomico' ? 'Teste Anatômico' : 'Sessão de Tatuagem'}
                   </h1>
                 </div>
                 {isBookingToday && (
@@ -349,7 +348,7 @@ export default function MyBookings() {
             style={{ background: 'radial-gradient(ellipse, #8B5CF6 0%, transparent 70%)' }} />
         </div>
 
-        <div className="relative z-10 pt-20 pb-16 px-5 sm:px-8">
+        <div className="relative z-10 pt-24 pb-16 px-5 sm:px-8">
           <div className="max-w-lg mx-auto">
             {/* Back */}
             <motion.button
@@ -440,7 +439,7 @@ export default function MyBookings() {
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-semibold truncate" style={{ color: '#E8E4F0' }}>
-                                {booking.type === 'reuniao' ? 'Reunião Estratégica' : 'Sessão de Tatuagem'}
+                                {booking.type === 'reuniao' ? 'Reunião Estratégica' : booking.type === 'teste_anatomico' ? 'Teste Anatômico' : 'Sessão de Tatuagem'}
                               </p>
                               {isBookingToday && (
                                 <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-400 shrink-0">
@@ -503,7 +502,7 @@ export default function MyBookings() {
             style={{ background: 'radial-gradient(ellipse, #8B5CF6 0%, transparent 70%)' }} />
         </div>
 
-        <div className="relative z-10 pt-20 pb-16 px-5 sm:px-8">
+        <div className="relative z-10 pt-24 pb-16 px-5 sm:px-8">
           <div className="max-w-md mx-auto text-center">
             <motion.button
               initial={{ opacity: 0, x: -10 }}
@@ -562,6 +561,21 @@ export default function MyBookings() {
 
       <div className="flex-1 flex items-center justify-center relative z-10 px-5 sm:px-8">
         <div className="w-full max-w-md">
+          {/* Logo */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, ease: easeOutQuint }}
+            className="flex justify-center mb-8"
+          >
+            <img 
+              src="/LOGO SEM FUNDO.png" 
+              alt="Kevin Hussein Tattoo" 
+              className="w-16 h-16 object-contain"
+              style={{ filter: 'drop-shadow(0 0 15px rgba(139, 92, 246, 0.3))' }}
+            />
+          </motion.div>
+
           {/* Card principal */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}

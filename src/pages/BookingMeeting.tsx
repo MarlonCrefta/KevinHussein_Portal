@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Clock, Calendar, User, Phone, Mail, MessageS
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, isBefore, startOfToday, getDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import BaroqueModernBackground from '../components/ui/BaroqueModernBackground'
+import { Link } from 'react-router-dom'
 import { slotsApi, bookingsApi, clientsApi, Slot, Client, Booking } from '../services/api'
 
 // Validação de CPF
@@ -33,20 +34,20 @@ function validateCPF(cpf: string): boolean {
 
 function getReputationLabel(reputation: string): string {
   const labels: Record<string, string> = {
-    novo: 'Cliente Novo',
-    regular: 'Cliente Regular',
-    vip: 'Cliente VIP',
-    alerta: 'Cliente em Alerta',
+    neutro: 'Cliente Novo',
+    boa: 'Cliente Regular',
+    alta: 'Cliente VIP',
+    baixa: 'Cliente em Alerta',
   }
   return labels[reputation] || 'Cliente Novo'
 }
 
 function getReputationColor(reputation: string): string {
   const colors: Record<string, string> = {
-    novo: 'text-blue-400',
-    regular: 'text-green-400',
-    vip: 'text-amber-400',
-    alerta: 'text-red-400',
+    neutro: 'text-blue-400',
+    boa: 'text-green-400',
+    alta: 'text-amber-400',
+    baixa: 'text-red-400',
   }
   return colors[reputation] || 'text-blue-400'
 }
@@ -326,7 +327,7 @@ export default function BookingMeeting() {
   const currentStepIndex = steps.findIndex(s => s.id === currentStep)
 
   return (
-    <div className="min-h-[100dvh] pt-20 pb-16 px-6 sm:px-8 lg:px-12 relative">
+    <div className="min-h-[100dvh] pt-24 pb-16 px-6 sm:px-8 lg:px-12 relative">
       <BaroqueModernBackground variant="section" />
       <div className="max-w-lg mx-auto relative z-20">
         {/* Back Link */}
@@ -336,13 +337,13 @@ export default function BookingMeeting() {
           transition={{ ease: [0.16, 1, 0.3, 1] }}
           className="mb-6"
         >
-          <a 
-            href="/agendar" 
+          <Link 
+            to="/agendar" 
             className="inline-flex items-center gap-2 text-bone-muted hover:text-neon transition-colors duration-200 text-sm"
           >
             <ArrowLeft size={16} />
             Voltar
-          </a>
+          </Link>
         </motion.div>
 
         {/* Header */}
@@ -909,19 +910,19 @@ export default function BookingMeeting() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                  <a 
-                    href="/"
+                  <Link 
+                    to="/"
                     className="inline-flex items-center justify-center px-6 py-3 text-sm font-medium text-bone-muted hover:text-bone bg-graphite-light hover:bg-graphite border border-bone/10 hover:border-bone/20 rounded-full transition-all duration-200"
                   >
                     Voltar ao início
-                  </a>
-                  <a 
-                    href="/meus-agendamentos"
+                  </Link>
+                  <Link 
+                    to="/meus-agendamentos"
                     className="inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium text-white bg-neon hover:bg-neon/80 rounded-full transition-all duration-200 shadow-neon"
                   >
                     <Calendar size={16} />
                     Ver meus agendamentos
-                  </a>
+                  </Link>
                 </div>
               </div>
             </motion.div>
