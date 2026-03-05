@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # Backend API + WhatsApp
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: kevin-studio-backend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - JWT_SECRET=${JWT_SECRET}
+      - REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET}
+      - DATABASE_PATH=/app/data/database.sqlite
+      - ENABLE_SCHEDULER=true
+    volumes:
+      - ./server/data:/app/data
+      - ./server/auth_info_baileys:/app/auth_info_baileys
+    networks:
+      - kevin-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend React (Nginx)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: kevin-studio-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=http://backend:3001/api
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    networks:
+      - kevin-network
+
+networks:
+  kevin-network:
+    driver: bridge
+
+volumes:
+  db-data:
+  whatsapp-data:

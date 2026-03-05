@@ -1,0 +1,5 @@
+node_modules/
+.wwebjs_cache/
+*.log
+# NÃO ignorar auth_info_baileys - mantém sessão do WhatsApp
+# auth_info_baileys/wwebjs_auth/

@@ -1,0 +1,416 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════════════
+   KEVIN HUSSEIN TATTOO STUDIO — Art Direction V3
+   Drama controlado. Luxo sombrio. Cores vibrantes.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════
+   BASE STYLES
+   ═══════════════════════════════════════════════════════════════ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #050510;
+  color: #E8E4F0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 16px;
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   REDUCED MOTION
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ACANTHUS PATTERN BACKGROUND
+   ═══════════════════════════════════════════════════════════════ */
+
+.acanthus-pattern {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background-image: url('/download.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.06;
+  mix-blend-mode: soft-light;
+  filter: invert(1) sepia(0.2) saturate(0.5);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TYPOGRAPHY UTILITIES
+   ═══════════════════════════════════════════════════════════════ */
+
+.text-display {
+  font-family: 'Cinzel Decorative', 'Cinzel', Georgia, serif;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.text-heading {
+  font-family: 'Cinzel', Georgia, serif;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.text-subheading {
+  font-family: 'Montserrat', -apple-system, sans-serif;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.text-body {
+  font-family: 'Montserrat', -apple-system, sans-serif;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.text-caption {
+  font-family: 'Cinzel', Georgia, serif;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GLASS MORPHISM
+   ═══════════════════════════════════════════════════════════════ */
+
+.glass {
+  background: rgba(26, 26, 31, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(217, 212, 198, 0.06);
+}
+
+.glass-strong {
+  background: rgba(26, 26, 31, 0.9);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(217, 212, 198, 0.08);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIQUID GLASS / FROSTED NOIR
+   Premium glass effect with depth and inner glow
+   ═══════════════════════════════════════════════════════════════ */
+
+.liquid-glass {
+  background: rgba(255, 255, 255, 0.045);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 28px;
+  box-shadow: 
+    0 8px 22px rgba(0, 0, 0, 0.55),
+    inset 0 0 0.6px rgba(255, 255, 255, 0.25);
+  transition: all 0.25s ease;
+}
+
+.liquid-glass:hover {
+  transform: scale(1.01);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.liquid-glass-sm {
+  background: rgba(255, 255, 255, 0.045);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  box-shadow: 
+    0 6px 18px rgba(0, 0, 0, 0.5),
+    inset 0 0 0.6px rgba(255, 255, 255, 0.25);
+  transition: all 0.25s ease;
+}
+
+.liquid-glass-sm:hover {
+  transform: scale(1.03);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.liquid-glass-pill {
+  background: rgba(255, 255, 255, 0.045);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  box-shadow: 
+    0 8px 22px rgba(0, 0, 0, 0.55),
+    inset 0 0 0.6px rgba(255, 255, 255, 0.25);
+  transition: all 0.25s ease;
+}
+
+.liquid-glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 28px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    inset 0 0 0.6px rgba(255, 255, 255, 0.2);
+}
+
+.liquid-glass-card-highlight {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  border: 1px solid rgba(111, 43, 255, 0.3);
+  border-radius: 28px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(111, 43, 255, 0.1),
+    inset 0 0 0.6px rgba(255, 255, 255, 0.25);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BUTTON VARIANTS — NEON VIOLET GRADIENT
+   ═══════════════════════════════════════════════════════════════ */
+
+.btn-imperial {
+  background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 50%, #C084FC 100%);
+  border: 1px solid rgba(192, 132, 252, 0.3);
+  color: white;
+  box-shadow: 0 0 25px rgba(139, 92, 246, 0.45);
+  transition: all 0.3s ease-out;
+}
+
+.btn-imperial:hover {
+  background: linear-gradient(135deg, #9B6DF7 0%, #B865F8 50%, #D094FD 100%);
+  box-shadow: 0 0 40px rgba(168, 85, 247, 0.65);
+  transform: scale(1.04);
+}
+
+.btn-imperial:active {
+  transform: scale(0.98);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INTERACTIVE STATES
+   ═══════════════════════════════════════════════════════════════ */
+
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid #A855F7;
+  outline-offset: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LOADING STATES
+   ═══════════════════════════════════════════════════════════════ */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(37, 37, 41, 0.5) 0%,
+    rgba(37, 37, 41, 0.8) 50%,
+    rgba(37, 37, 41, 0.5) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCROLLBAR
+   ═══════════════════════════════════════════════════════════════ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0B0B0D;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(162, 55, 255, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #A237FF;
+}
+
+@media (hover: none) {
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  * {
+    scrollbar-width: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SELECTION
+   ═══════════════════════════════════════════════════════════════ */
+
+::selection {
+  background: rgba(162, 55, 255, 0.3);
+  color: #D9D4C6;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CONTAINER
+   ═══════════════════════════════════════════════════════════════ */
+
+.container-premium {
+  width: 100%;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container-premium {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-premium {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE-FIRST REFINEMENTS
+   Otimizações específicas para mobile web
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Safe area insets para notch e home indicator */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Smooth scrolling com performance */
+.scroll-smooth {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Previne highlight azul em mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Touch targets mínimos para mobile */
+@media (hover: none) and (pointer: coarse) {
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Aumenta área de toque sem afetar visual */
+  .touch-expand {
+    position: relative;
+  }
+  
+  .touch-expand::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+  }
+}
+
+/* Font rendering otimizado */
+.text-crisp {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Transições premium */
+.transition-premium {
+  transition-property: transform, opacity, box-shadow, background-color, border-color;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  transition-duration: 300ms;
+}
+
+/* Animação de fade elegante */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Glow effect premium */
+.glow-purple {
+  box-shadow: 0 0 20px rgba(111, 43, 255, 0.4);
+}
+
+.glow-purple-hover:hover {
+  box-shadow: 0 0 30px rgba(159, 95, 255, 0.5);
+}
+
+/* Gradient text */
+.text-gradient-purple {
+  background: linear-gradient(135deg, #9f5fff 0%, #c084ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
