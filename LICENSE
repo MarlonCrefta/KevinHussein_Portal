@@ -1,0 +1,117 @@
+LICENÇA DE SOFTWARE PROPRIETÁRIO
+=================================
+
+Kevin Hussein Tattoo Studio — Sistema de Gestão e Agendamentos
+Versão 2.0.0
+
+Copyright (c) 2026. Todos os direitos reservados.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PARTES ENVOLVIDAS
+
+  Proprietário e Contratante:
+    Kevin Hussein
+    Curitiba, PR — Brasil
+    Atividade: Tatuador profissional e proprietário do estúdio
+    Papel: Titular dos direitos de uso, dados e marca
+
+  Desenvolvedor:
+    Marlon Crefta
+    Desenvolvedor de Software
+    Papel: Autor do código-fonte e responsável técnico pelo desenvolvimento
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TERMOS E CONDIÇÕES
+
+1. PROPRIEDADE INTELECTUAL
+
+   1.1. O código-fonte deste software foi desenvolvido por Marlon Crefta
+        sob encomenda de Kevin Hussein.
+
+   1.2. Kevin Hussein detém os direitos exclusivos de uso, implantação
+        e operação do sistema para fins comerciais em seu estúdio de
+        tatuagem.
+
+   1.3. Marlon Crefta mantém os créditos de autoria do código-fonte
+        conforme Lei nº 9.610/1998 (Lei de Direitos Autorais).
+
+   1.4. A marca, logotipo e identidade visual "Kevin Hussein Tattoo"
+        são propriedade exclusiva de Kevin Hussein.
+
+2. DIREITOS DE USO
+
+   2.1. Kevin Hussein possui licença perpétua, irrevogável e
+        intransferível para uso deste software em suas operações
+        comerciais.
+
+   2.2. É VEDADO ao Proprietário:
+        a) Revender, sublicenciar ou distribuir o código-fonte;
+        b) Remover créditos de autoria do Desenvolvedor;
+        c) Utilizar o sistema para fins diferentes dos aqui acordados
+           sem consentimento do Desenvolvedor.
+
+   2.3. É VEDADO ao Desenvolvedor:
+        a) Utilizar a marca ou identidade visual de Kevin Hussein
+           sem autorização;
+        b) Acessar dados do sistema em produção sem autorização;
+        c) Revogar a licença de uso concedida ao Proprietário.
+
+3. DADOS E PRIVACIDADE (LGPD — Lei nº 13.709/2018)
+
+   3.1. Os dados pessoais coletados pelo sistema (nome, CPF, e-mail,
+        telefone dos clientes) são de responsabilidade do Proprietário
+        (Kevin Hussein), que atua como CONTROLADOR dos dados conforme
+        a LGPD.
+
+   3.2. O Desenvolvedor (Marlon Crefta) atua como OPERADOR dos dados
+        apenas durante o desenvolvimento e manutenção técnica do sistema.
+
+   3.3. O Proprietário compromete-se a:
+        a) Informar aos clientes sobre a coleta e uso de seus dados;
+        b) Obter consentimento para armazenamento de dados pessoais;
+        c) Atender solicitações de exclusão de dados (direito ao
+           esquecimento);
+        d) Manter os dados seguros e não compartilhá-los com terceiros
+           sem base legal.
+
+   3.4. Os dados são armazenados localmente em banco SQLite no servidor
+        do Proprietário, sem transmissão para serviços externos, exceto
+        quando explicitamente configurado (ex: integração WhatsApp).
+
+   3.5. O sistema implementa as seguintes medidas de segurança:
+        a) Autenticação JWT com expiração;
+        b) Rate limiting para prevenção de ataques;
+        c) Senhas armazenadas com hash bcrypt;
+        d) CORS restritivo por origem;
+        e) Validação de dados em todas as entradas.
+
+4. MANUTENÇÃO E SUPORTE
+
+   4.1. O Desenvolvedor poderá prestar serviços de manutenção e
+        evolução do sistema mediante acordo separado.
+
+   4.2. O Proprietário é responsável pela infraestrutura de hospedagem,
+        backups e disponibilidade do sistema.
+
+5. ISENÇÃO DE GARANTIA
+
+   5.1. O software é fornecido "como está" (AS IS), sem garantias
+        expressas ou implícitas de funcionamento ininterrupto.
+
+   5.2. O Desenvolvedor não se responsabiliza por perdas decorrentes
+        de uso indevido, falhas de infraestrutura ou modificações
+        não autorizadas no código.
+
+6. FORO
+
+   6.1. Fica eleito o foro da comarca de Curitiba/PR para dirimir
+        quaisquer controvérsias decorrentes deste instrumento.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Curitiba, PR — Março de 2026
+
+Desenvolvedor: Marlon Crefta
+Proprietário:  Kevin Hussein

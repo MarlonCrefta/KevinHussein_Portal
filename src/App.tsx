@@ -1,23 +1,34 @@
-import { useState, type ReactNode } from 'react'
+import { useState, lazy, Suspense, type ReactNode } from 'react'
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
-import Home from './pages/Home'
-import BookingChoice from './pages/BookingChoice'
-import BookingMeeting from './pages/BookingMeeting'
-import MyBookings from './pages/MyBookings'
 import Layout from './components/Layout'
 import AdminLayout from './components/AdminLayout'
-import AdminLogin from './pages/admin/AdminLogin'
-import AdminDashboard from './pages/admin/AdminDashboard'
-import AdminSlots from './pages/admin/AdminSlots'
-import AdminBookings from './pages/admin/AdminBookings'
-import AdminBookingDetail from './pages/admin/AdminBookingDetail'
-import AdminClients from './pages/admin/AdminClients'
-import AdminClientDetail from './pages/admin/AdminClientDetail'
-import AdminWhatsApp from './pages/admin/AdminWhatsApp'
-import AdminSettings from './pages/admin/AdminSettings'
 import IntroAnimation from './components/IntroAnimation'
 import { useAuthContext } from './contexts'
+
+// Lazy loading — cada página é carregada sob demanda (code splitting)
+const Home = lazy(() => import('./pages/Home'))
+const BookingChoice = lazy(() => import('./pages/BookingChoice'))
+const BookingMeeting = lazy(() => import('./pages/BookingMeeting'))
+const MyBookings = lazy(() => import('./pages/MyBookings'))
+const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'))
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
+const AdminSlots = lazy(() => import('./pages/admin/AdminSlots'))
+const AdminBookings = lazy(() => import('./pages/admin/AdminBookings'))
+const AdminBookingDetail = lazy(() => import('./pages/admin/AdminBookingDetail'))
+const AdminClients = lazy(() => import('./pages/admin/AdminClients'))
+const AdminClientDetail = lazy(() => import('./pages/admin/AdminClientDetail'))
+const AdminWhatsApp = lazy(() => import('./pages/admin/AdminWhatsApp'))
+const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'))
+
+// Loading fallback mínimo (exibido enquanto chunk carrega)
+function PageLoader() {
+  return (
+    <div className="min-h-[50vh] flex items-center justify-center">
+      <div className="w-6 h-6 border-2 border-violet-500/30 border-t-violet-500 rounded-full animate-spin" />
+    </div>
+  )
+}
 
 // Componente de rota protegida
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -41,6 +52,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 // Componente de rotas unificado
 function AppRoutes() {
   return (
+    <Suspense fallback={<PageLoader />}>
     <AnimatePresence mode="wait">
       <Routes>
         {/* Rotas públicas */}
@@ -82,6 +94,7 @@ function AppRoutes() {
         </Route>
       </Routes>
     </AnimatePresence>
+    </Suspense>
   )
 }
 

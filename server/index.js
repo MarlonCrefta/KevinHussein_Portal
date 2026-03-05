@@ -13,6 +13,7 @@
 import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import { createServer } from 'http';
 
 // Configuração
 import config from './src/config/env.js';
@@ -58,30 +59,41 @@ app.use(cors({
 // Parse JSON
 app.use(express.json({ limit: '10mb' }));
 
-// Rate Limiting (mais permissivo para desenvolvimento)
+// Rate Limiting — adaptável por ambiente
+const isProd = config.env === 'production';
 const limiter = rateLimit({
   windowMs: config.rateLimit.windowMs,
-  max: 1000, // Aumentado para desenvolvimento
+  max: isProd ? 100 : 1000, // Restritivo em produção
   message: {
     success: false,
     error: 'Muitas requisições. Tente novamente em alguns minutos.',
   },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 app.use('/api/', limiter);
 
-// Rate limiting para login (mais permissivo para desenvolvimento)
+// Rate limiting para login (anti brute-force)
 const loginLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minuto
-  max: 50, // 50 tentativas por minuto
+  windowMs: isProd ? 15 * 60 * 1000 : 1 * 60 * 1000,
+  max: isProd ? 5 : 50,
   message: {
     success: false,
-    error: 'Muitas tentativas de login. Tente novamente em 1 minuto.',
+    error: 'Muitas tentativas de login. Tente novamente mais tarde.',
   },
 });
 app.use('/api/auth/login', loginLimiter);
 
-// Log de requisições (desenvolvimento)
-if (config.env === 'development') {
+// Cache headers para recursos estáticos da API
+app.use('/api', (req, res, next) => {
+  if (req.method === 'GET') {
+    res.set('Cache-Control', 'private, max-age=30');
+  }
+  next();
+});
+
+// Log de requisições (apenas desenvolvimento)
+if (!isProd) {
   app.use((req, res, next) => {
     console.log(`📥 ${req.method} ${req.url}`);
     next();
