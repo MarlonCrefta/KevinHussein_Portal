@@ -6,6 +6,7 @@
 import { Router } from 'express';
 import { BookingModel, ClientModel, SlotModel, MessageTemplateModel } from '../models/index.js';
 import { schedulerService } from '../services/index.js';
+import { runTransaction } from '../config/database.js';
 import { 
   authenticate, 
   optionalAuth,
@@ -151,42 +152,45 @@ router.post('/', validate(bookingSchemas.create), asyncHandler(async (req, res) 
     throw ApiError.conflict('Horário não disponível');
   }
 
-  // Buscar ou criar cliente
-  console.log('👤 Buscando/criando cliente...');
-  const client = ClientModel.findOrCreate({
-    name: clientName,
-    email: clientEmail,
-    phone: clientPhone,
-    cpf: clientCpf,
+  // Transação atômica: cliente + booking + slot (tudo ou nada)
+  const booking = runTransaction(() => {
+    // Buscar ou criar cliente
+    const client = ClientModel.findOrCreate({
+      name: clientName,
+      email: clientEmail,
+      phone: clientPhone,
+      cpf: clientCpf,
+    });
+
+    if (!client || !client.id) {
+      throw ApiError.internal('Erro ao criar cliente');
+    }
+
+    // Incrementar contador de agendamentos do cliente
+    ClientModel.incrementBookingCount(client.id);
+
+    // Criar agendamento
+    const newBooking = BookingModel.create({
+      clientId: client.id,
+      type,
+      date,
+      time,
+      duration,
+      clientName,
+      clientEmail,
+      clientPhone,
+      clientCpf,
+      clientMessage,
+      clientReputation: client.reputation,
+    });
+
+    // Marcar slot como ocupado
+    if (slot) {
+      SlotModel.markAsBooked(slot.id, newBooking.id);
+    }
+
+    return newBooking;
   });
-  console.log('👤 Cliente:', client);
-
-  if (!client || !client.id) {
-    throw ApiError.internal('Erro ao criar cliente');
-  }
-
-  // Incrementar contador de agendamentos do cliente
-  ClientModel.incrementBookingCount(client.id);
-
-  // Criar agendamento
-  const booking = BookingModel.create({
-    clientId: client.id,
-    type,
-    date,
-    time,
-    duration,
-    clientName,
-    clientEmail,
-    clientPhone,
-    clientCpf,
-    clientMessage,
-    clientReputation: client.reputation,
-  });
-
-  // Marcar slot como ocupado
-  if (slot) {
-    SlotModel.markAsBooked(slot.id, booking.id);
-  }
 
   // Enviar confirmação via WhatsApp (assíncrono, não bloqueia resposta)
   schedulerService.sendConfirmation({

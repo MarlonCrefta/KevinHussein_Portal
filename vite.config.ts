@@ -8,6 +8,9 @@ export default defineConfig({
     port: 3000,
     open: true
   },
+  esbuild: {
+    drop: ['console', 'debugger'],
+  },
   build: {
     // Chunks menores = carregamento mais rápido
     chunkSizeWarningLimit: 500,
@@ -22,14 +25,8 @@ export default defineConfig({
         },
       },
     },
-    // Minificação agressiva
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,  // Remove console.log em produção
-        drop_debugger: true,
-      },
-    },
+    // Minificação com esbuild (built-in, sem dependência extra)
+    minify: 'esbuild',
     // Source maps desligados em produção (menor tamanho)
     sourcemap: false,
   },

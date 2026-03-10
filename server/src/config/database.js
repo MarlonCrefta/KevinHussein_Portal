@@ -131,6 +131,8 @@ export function initializeDatabase() {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_bookings_date ON bookings(date)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_bookings_client_id ON bookings(client_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_bookings_cpf ON bookings(client_cpf)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_bookings_date_status ON bookings(date, status)`);
 
   // Tabela de Slots (Vagas disponíveis)
   db.exec(`
@@ -149,6 +151,7 @@ export function initializeDatabase() {
 
   db.exec(`CREATE INDEX IF NOT EXISTS idx_slots_date ON slots(date)`);
   db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_slots_unique ON slots(date, time, type)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_slots_available ON slots(date, is_available)`);
 
   // Tabela de Templates de Mensagem
   db.exec(`
@@ -178,6 +181,8 @@ export function initializeDatabase() {
     )
   `);
 
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_message_logs_booking ON message_logs(booking_id)`);
+
   // Tabela de Configurações
   db.exec(`
     CREATE TABLE IF NOT EXISTS settings (
@@ -188,6 +193,17 @@ export function initializeDatabase() {
   `);
 
   console.log('✅ Banco de dados inicializado com sucesso!');
+}
+
+/**
+ * Executa uma função dentro de uma transação SQLite.
+ * Se a função lançar erro, a transação é revertida automaticamente.
+ * @param {Function} fn - Função a ser executada dentro da transação
+ * @returns {*} Resultado da função
+ */
+export function runTransaction(fn) {
+  const transaction = db.transaction(fn);
+  return transaction();
 }
 
 /**

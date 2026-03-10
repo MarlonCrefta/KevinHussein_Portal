@@ -3,6 +3,8 @@
  * Kevin Hussein Tattoo Studio
  */
 
+import logger from '../config/logger.js';
+
 /**
  * Classe de erro customizada para erros da API
  */
@@ -46,10 +48,7 @@ export class ApiError extends Error {
  */
 export function errorHandler(err, req, res, next) {
   // Log do erro
-  console.error('❌ Erro:', err.message);
-  if (process.env.NODE_ENV === 'development') {
-    console.error(err.stack);
-  }
+  logger.error({ err, url: req.originalUrl, method: req.method }, err.message);
 
   // Erro operacional (esperado)
   if (err.isOperational) {
@@ -62,7 +61,7 @@ export function errorHandler(err, req, res, next) {
 
   // Erros do SQLite
   if (err.code?.startsWith('SQLITE_')) {
-    console.error('❌ Erro SQLite:', err.code, err.message);
+    logger.error({ code: err.code }, 'Erro SQLite: %s', err.message);
     
     if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
       return res.status(409).json({

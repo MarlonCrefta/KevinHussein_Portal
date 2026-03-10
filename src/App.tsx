@@ -4,6 +4,7 @@ import { AnimatePresence } from 'framer-motion'
 import Layout from './components/Layout'
 import AdminLayout from './components/AdminLayout'
 import IntroAnimation from './components/IntroAnimation'
+import ErrorBoundary from './components/ErrorBoundary'
 import { useAuthContext } from './contexts'
 
 // Lazy loading — cada página é carregada sob demanda (code splitting)
@@ -113,7 +114,11 @@ function App() {
     )
   }
 
-  return <AppRoutes />
+  return (
+    <ErrorBoundary>
+      <AppRoutes />
+    </ErrorBoundary>
+  )
 }
 
 export default App

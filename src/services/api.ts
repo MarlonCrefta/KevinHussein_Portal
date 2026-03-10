@@ -37,6 +37,8 @@ function clearTokens(): void {
 /**
  * Faz uma requisição HTTP
  */
+const REQUEST_TIMEOUT_MS = 15000; // 15 segundos
+
 async function request<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -54,10 +56,26 @@ async function request<T>(
     (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  // Timeout via AbortController
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+      signal: controller.signal,
+    });
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      throw new Error('Tempo de conexão esgotado. Verifique sua internet.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   // Tentar refresh token se 401
   if (response.status === 401 && localStorage.getItem(REFRESH_TOKEN_KEY)) {
