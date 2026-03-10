@@ -5,7 +5,7 @@
 
 import { Router } from 'express';
 import db from '../config/database.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -22,7 +22,7 @@ const defaultSettings = {
  * GET /api/settings
  * Retorna todas as configurações
  */
-router.get('/', authenticateToken, (req, res) => {
+router.get('/', authenticate, (req, res) => {
   try {
     const rows = db.prepare('SELECT key, value FROM settings').all();
     
@@ -49,7 +49,7 @@ router.get('/', authenticateToken, (req, res) => {
  * GET /api/settings/:key
  * Retorna uma configuração específica
  */
-router.get('/:key', authenticateToken, (req, res) => {
+router.get('/:key', authenticate, (req, res) => {
   try {
     const { key } = req.params;
     const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
@@ -73,7 +73,7 @@ router.get('/:key', authenticateToken, (req, res) => {
  * PUT /api/settings/:key
  * Atualiza uma configuração
  */
-router.put('/:key', authenticateToken, (req, res) => {
+router.put('/:key', authenticate, (req, res) => {
   try {
     const { key } = req.params;
     const { value } = req.body;
@@ -112,7 +112,7 @@ router.put('/:key', authenticateToken, (req, res) => {
  * PUT /api/settings
  * Atualiza múltiplas configurações
  */
-router.put('/', authenticateToken, (req, res) => {
+router.put('/', authenticate, (req, res) => {
   try {
     const settings = req.body;
 
