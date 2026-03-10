@@ -5,7 +5,7 @@
  * Centraliza todas as chamadas HTTP para o backend
  */
 
-const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? '/api' : 'http://localhost:3001/api');
 
 // Token storage
 const TOKEN_KEY = 'kh_token';
