@@ -137,10 +137,6 @@ export default function AdminLogin() {
             </button>
           </form>
 
-          {/* Demo hint */}
-          <div className="text-center text-gray-400 text-xs mt-6 pt-6 border-t border-gray-200">
-            <p>Usuário: <strong className="text-gray-700 font-semibold">kevin</strong> / Senha: <strong className="text-gray-700 font-semibold">2026</strong></p>
-          </div>
         </div>
       </motion.div>
     </div>
