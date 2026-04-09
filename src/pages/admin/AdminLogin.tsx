@@ -28,6 +28,11 @@ export default function AdminLogin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (isSubmitting || authLoading) {
+      return
+    }
+
     setIsSubmitting(true)
 
     const success = await login(username, password)

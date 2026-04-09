@@ -104,9 +104,12 @@ export const SlotModel = {
     const stmt = db.prepare(`
       UPDATE slots 
       SET is_available = 0, booking_id = ?
-      WHERE id = ?
+      WHERE id = ? AND is_available = 1
     `);
-    stmt.run(bookingId, id);
+    const result = stmt.run(bookingId, id);
+    if (result.changes === 0) {
+      return null;
+    }
     return this.findById(id);
   },
 

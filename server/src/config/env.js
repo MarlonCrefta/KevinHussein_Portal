@@ -65,6 +65,7 @@ export const config = {
   // WhatsApp
   whatsapp: {
     sessionPath: process.env.WHATSAPP_SESSION_PATH || './auth_info_baileys',
+    autoConnect: process.env.WHATSAPP_AUTO_CONNECT !== 'false',
   },
   
   // Admin Padrão — SEM senha hardcoded em produção

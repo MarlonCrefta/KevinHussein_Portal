@@ -13,10 +13,19 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
+      - HOST=0.0.0.0
+      - FRONTEND_URL=${FRONTEND_URL}
       - JWT_SECRET=${JWT_SECRET}
-      - REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-1d}
+      - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN:-30d}
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - ADMIN_NAME=${ADMIN_NAME:-Kevin Hussein}
       - DATABASE_PATH=/app/data/database.sqlite
-      - ENABLE_SCHEDULER=true
+      - SCHEDULER_ENABLED=true
+      - WHATSAPP_SESSION_PATH=/app/auth_info_baileys
+      - WHATSAPP_AUTO_CONNECT=true
     volumes:
       - ./server/data:/app/data
       - ./server/auth_info_baileys:/app/auth_info_baileys

@@ -29,6 +29,34 @@ class WhatsAppService {
     this.onQRCodeCallback = null;
     this.onConnectedCallback = null;
     this.onDisconnectedCallback = null;
+    this.lastDisconnect = null;
+    this.lastStatus = 'idle';
+    this.reconnectTimer = null;
+    this.isShuttingDown = false;
+    this.forceSessionReset = false;
+  }
+
+  _clearReconnectTimer() {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+  }
+
+  _scheduleReconnect(delayMs, reason = 'retry') {
+    if (!config.whatsapp.autoConnect || this.isShuttingDown) {
+      return;
+    }
+
+    this._clearReconnectTimer();
+    this.lastStatus = `reconnect-${reason}`;
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      if (this.isShuttingDown) return;
+      this.connect().catch((err) => {
+        console.error('❌ Erro em reconnect agendado:', err.message);
+      });
+    }, delayMs);
   }
 
   /**
@@ -46,6 +74,11 @@ class WhatsAppService {
    * Conecta ao WhatsApp
    */
   async connect() {
+    if (this.isShuttingDown) {
+      console.log('⏹️  Ignorando connect(): serviço em shutdown');
+      return;
+    }
+
     // Evitar conexões simultâneas
     if (this.isConnecting) {
       console.log('⚠️  Já existe uma conexão em andamento');
@@ -59,7 +92,15 @@ class WhatsAppService {
     }
 
     this.isConnecting = true;
+    this.lastStatus = 'connecting';
     this.qrCodeData = null;
+    this._clearReconnectTimer();
+
+    if (this.forceSessionReset) {
+      console.log('🧹 Reset forçado de sessão antes da conexão...');
+      this._cleanSession();
+      this.forceSessionReset = false;
+    }
 
     try {
       // Fechar socket anterior se existir
@@ -169,6 +210,12 @@ class WhatsAppService {
 
           const statusCode = lastDisconnect?.error?.output?.statusCode;
           const errorMessage = lastDisconnect?.error?.message || 'Desconhecido';
+          this.lastDisconnect = {
+            code: statusCode || null,
+            message: errorMessage,
+            at: new Date().toISOString(),
+          };
+          this.lastStatus = 'disconnected';
           
           console.log(`❌ Conexão fechada - Status: ${statusCode}, Motivo: ${errorMessage}`);
           
@@ -186,10 +233,14 @@ class WhatsAppService {
 
           if (isLoggedOut || isBadSession) {
             console.log('🗑️  Sessão inválida, limpando para novo QR Code...');
+            this.forceSessionReset = true;
             this._cleanSession();
             this.qrCodeData = null;
             this.sock = null;
             this.reconnectAttempts = 0;
+
+            console.log('🔁 AutoConnect: agendando nova conexão para gerar QR...');
+            this._scheduleReconnect(1500, 'new-qr');
             return;
           }
 
@@ -198,23 +249,18 @@ class WhatsAppService {
             this.reconnectAttempts++;
             const delay = Math.min(2000 * this.reconnectAttempts, 10000);
             console.log(`🔄 Reconectando em ${delay/1000}s (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
-            
-            setTimeout(async () => {
-              try {
-                await this.connect();
-              } catch (err) {
-                console.error('❌ Erro ao reconectar:', err.message);
-                this.qrCodeData = null;
-                this.sock = null;
-                this.isConnecting = false;
-              }
-            }, delay);
+
+            this._scheduleReconnect(delay, 'connection-lost');
           } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
             console.log('❌ Máximo de tentativas atingido. Limpando sessão...');
             this._cleanSession();
             this.qrCodeData = null;
             this.sock = null;
             this.reconnectAttempts = 0;
+            this.lastStatus = 'max-retries';
+
+            console.log('🔁 AutoConnect: nova tentativa completa em 5s...');
+            this._scheduleReconnect(5000, 'max-retries');
           }
         } else if (connection === 'open') {
           console.log('✅ WhatsApp conectado com sucesso!');
@@ -222,6 +268,8 @@ class WhatsAppService {
           this.isConnecting = false;
           this.qrCodeData = null;
           this.reconnectAttempts = 0;
+          this.lastDisconnect = null;
+          this.lastStatus = 'connected';
 
           try {
             const info = this.sock.user;
@@ -240,6 +288,7 @@ class WhatsAppService {
           }
         } else if (connection === 'connecting') {
           console.log('⏳ Conectando ao WhatsApp...');
+          this.lastStatus = 'connecting';
         }
       });
 
@@ -257,6 +306,8 @@ class WhatsAppService {
    */
   async disconnect() {
     this.isConnecting = false;
+    this._clearReconnectTimer();
+    this.forceSessionReset = true;
     
     if (this.sock) {
       try {
@@ -278,7 +329,37 @@ class WhatsAppService {
 
       this._cleanSession();
       console.log('✅ WhatsApp desconectado e sessão limpa');
+      return;
     }
+
+    // Também limpar sessão quando não há socket ativo (ex.: loop de reconexão)
+    this._cleanSession();
+    this.qrCodeData = null;
+    this.clientInfo = null;
+    this.lastStatus = 'disconnected';
+    console.log('✅ Sessão WhatsApp limpa (sem socket ativo)');
+  }
+
+  /**
+   * Shutdown gracioso: fecha conexão sem logout/limpeza de sessão.
+   * Útil para restart de container em produção sem perder pareamento.
+   */
+  async shutdown() {
+    this.isShuttingDown = true;
+    this.isConnecting = false;
+    this._clearReconnectTimer();
+
+    if (!this.sock) return;
+
+    try {
+      this.sock.end(undefined);
+    } catch (err) {
+      console.error('⚠️ Erro ao encerrar socket no shutdown:', err.message);
+    }
+
+    this.sock = null;
+    this.isConnected = false;
+    this.lastStatus = 'shutdown';
   }
 
   /**
@@ -330,11 +411,16 @@ class WhatsAppService {
    * Retorna status atual
    */
   getStatus() {
+    const sessionPath = path.resolve(process.cwd(), config.whatsapp.sessionPath);
     return {
       isReady: this.isConnected,
       isConnecting: this.isConnecting,
       qrCode: this.qrCodeData,
-      clientInfo: this.isConnected ? this.clientInfo : null
+      clientInfo: this.isConnected ? this.clientInfo : null,
+      lastDisconnect: this.lastDisconnect,
+      status: this.lastStatus,
+      sessionPath,
+      sessionPathExists: fs.existsSync(sessionPath),
     };
   }
 

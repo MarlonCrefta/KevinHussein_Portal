@@ -163,13 +163,58 @@ export const BookingModel = {
    * Busca agendamentos por CPF do cliente
    */
   findByCpf(cpf) {
-    const cleanCpf = cpf.replace(/\D/g, '');
+    const cleanCpf = String(cpf || '').replace(/\D/g, '');
+    if (!cleanCpf) return [];
+
     const stmt = db.prepare(`
       SELECT * FROM bookings 
-      WHERE client_cpf = ?
+      WHERE REPLACE(REPLACE(REPLACE(REPLACE(client_cpf, '.', ''), '-', ''), '(', ''), ')', '') = ?
       ORDER BY date DESC, time DESC
     `);
     return stmt.all(cleanCpf);
+  },
+
+  /**
+   * Busca agendamento ativo duplicado (mesmo cliente e mesmo horário/tipo)
+   */
+  findActiveDuplicate({ type, date, time, clientCpf, clientPhone }) {
+    const cleanCpf = String(clientCpf || '').replace(/\D/g, '');
+    const cleanPhone = String(clientPhone || '').replace(/\D/g, '');
+
+    const stmt = db.prepare(`
+      SELECT * FROM bookings
+      WHERE type = ?
+        AND date = ?
+        AND time = ?
+        AND status IN ('pendente', 'confirmado')
+        AND (
+          REPLACE(REPLACE(REPLACE(REPLACE(client_cpf, '.', ''), '-', ''), '(', ''), ')', '') = ?
+          OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(client_phone, '.', ''), '-', ''), '(', ''), ')', ''), ' ', ''), '+', '') = ?
+        )
+      ORDER BY created_at DESC
+      LIMIT 1
+    `);
+
+    return stmt.get(type, date, time, cleanCpf, cleanPhone);
+  },
+
+  /**
+   * Verifica se o CPF possui ao menos uma reunião concluída
+   */
+  hasCompletedMeetingByCpf(cpf) {
+    const cleanCpf = String(cpf || '').replace(/\D/g, '');
+    if (!cleanCpf) return false;
+
+    const stmt = db.prepare(`
+      SELECT COUNT(*) as count
+      FROM bookings
+      WHERE type = 'reuniao'
+        AND status = 'concluido'
+        AND REPLACE(REPLACE(REPLACE(REPLACE(client_cpf, '.', ''), '-', ''), '(', ''), ')', '') = ?
+    `);
+
+    const result = stmt.get(cleanCpf);
+    return (result?.count || 0) > 0;
   },
 
   /**

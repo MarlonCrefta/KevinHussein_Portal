@@ -64,7 +64,7 @@ const templateConfigs: Record<string, TemplateConfig> = {
 type TabType = 'connection' | 'confirmation' | 'completion' | 'reminder'
 
 export default function AdminWhatsApp() {
-  const { isConnected, isConnecting, qrCode, clientInfo, connect, disconnect } = useWhatsApp()
+  const { isConnected, isConnecting, qrCode, clientInfo, connect, disconnect, refreshStatus } = useWhatsApp()
   const [activeTab, setActiveTab] = useState<TabType>('connection')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -402,6 +402,7 @@ Até amanhã! 🖤`
                 loading={loading || isConnecting}
                 handleStart={handleStart}
                 handleDisconnect={handleDisconnect}
+                handleRefresh={refreshStatus}
               />
             </motion.div>
           )}
@@ -481,7 +482,7 @@ Até amanhã! 🖤`
 }
 
 // Connection Panel Component
-function ConnectionPanel({ isConnected, qrCode, clientInfo, loading, handleStart, handleDisconnect }: any) {
+function ConnectionPanel({ isConnected, qrCode, clientInfo, loading, handleStart, handleDisconnect, handleRefresh }: any) {
   return (
     <div className="rounded-2xl bg-white border border-gray-200 p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
@@ -500,6 +501,14 @@ function ConnectionPanel({ isConnected, qrCode, clientInfo, loading, handleStart
         </div>
         
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleRefresh}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-gray-200 text-gray-600 hover:text-gray-800 hover:border-indigo-200 transition-all"
+          >
+            <RefreshCw size={14} />
+            <span className="text-sm font-medium">Atualizar</span>
+          </button>
+
           {isConnected ? (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-100 border border-emerald-200">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -616,6 +625,10 @@ function ConnectionPanel({ isConnected, qrCode, clientInfo, loading, handleStart
                 </>
               )}
             </button>
+
+            <p className="text-xs text-slate-400 mt-4">
+              Se o QR não aparecer em alguns segundos, clique em Atualizar.
+            </p>
           </div>
         </div>
       )}

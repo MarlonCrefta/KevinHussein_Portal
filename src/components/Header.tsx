@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Instagram, MessageCircle } from 'lucide-react'
+import { Instagram, MessageCircle, LogIn, User } from 'lucide-react'
 
 const socialItems = [
   { href: 'https://instagram.com/kevinhusseintattoo', icon: Instagram, label: 'Instagram' },
@@ -9,13 +9,45 @@ const socialItems = [
 ]
 
 export default function Header() {
+  const location = useLocation()
   const [isScrolled, setIsScrolled] = useState(false)
+  const [isClientLoggedIn, setIsClientLoggedIn] = useState(false)
+  const accountLabel = isClientLoggedIn ? 'Minha Conta' : 'Entrar'
+
+  const syncClientAccess = () => {
+    const raw = sessionStorage.getItem('kh_client_access')
+    if (!raw) {
+      setIsClientLoggedIn(false)
+      return
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as { eligible?: boolean }
+      setIsClientLoggedIn(!!parsed.eligible)
+    } catch {
+      setIsClientLoggedIn(false)
+    }
+  }
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50)
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  useEffect(() => {
+    const handleStorage = () => syncClientAccess()
+    const handleAccessUpdate = () => syncClientAccess()
+
+    syncClientAccess()
+    window.addEventListener('storage', handleStorage)
+    window.addEventListener('kh-client-access-updated', handleAccessUpdate as EventListener)
+
+    return () => {
+      window.removeEventListener('storage', handleStorage)
+      window.removeEventListener('kh-client-access-updated', handleAccessUpdate as EventListener)
+    }
+  }, [location.pathname])
 
   return (
     <>
@@ -65,18 +97,24 @@ export default function Header() {
           </Link>
 
           {/* CTA Button — Neon pill */}
-          <Link to="/meus-agendamentos">
-            <motion.button
-              className="relative px-4 py-1.5 text-[10px] font-medium tracking-wider uppercase rounded-full overflow-hidden"
+          <Link to={isClientLoggedIn ? '/meus-agendamentos' : '/agendar#cliente-login'}>
+            <motion.div
+              className="relative inline-flex items-center gap-1.5 px-4.5 py-2.5 text-[11px] font-semibold tracking-[0.08em] uppercase rounded-full overflow-hidden"
               style={{
-                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.85) 0%, rgba(168, 85, 247, 0.85) 100%)',
-                boxShadow: '0 0 20px rgba(139, 92, 246, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-                border: '1px solid rgba(192, 132, 252, 0.25)',
+                background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.96) 0%, rgba(168, 85, 247, 0.96) 55%, rgba(196, 132, 252, 0.96) 100%)',
+                boxShadow: '0 10px 28px rgba(124, 58, 237, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+                border: '1px solid rgba(233, 213, 255, 0.45)',
+                color: 'rgba(255, 255, 255, 0.95)',
               }}
-              whileTap={{ scale: 0.96 }}
+              whileHover={{ y: -1, scale: 1.025 }}
+              whileTap={{ scale: 0.97 }}
+              transition={{ duration: 0.18 }}
             >
-              <span className="relative z-10 text-white/90">Já sou cliente</span>
-            </motion.button>
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full" style={{ background: 'rgba(255,255,255,0.2)' }}>
+                {isClientLoggedIn ? <User size={12} /> : <LogIn size={12} />}
+              </span>
+              <span>{accountLabel}</span>
+            </motion.div>
           </Link>
         </div>
       </motion.header>
@@ -90,57 +128,68 @@ export default function Header() {
           ${isScrolled ? 'lg:opacity-0 lg:pointer-events-none' : 'lg:opacity-100'}
         `}
       >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
-          <div className="liquid-glass flex items-center justify-between px-5 py-3">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5">
+          <div className="liquid-glass grid grid-cols-[180px_1fr_180px] lg:grid-cols-[220px_1fr_220px] items-center px-4 lg:px-5 py-2.5 lg:py-3">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-3">
+            <Link to="/" className="inline-flex items-center gap-2.5 lg:gap-3 w-[180px] lg:w-[220px]">
               <img 
                 src="/LOGO SEM FUNDO.png" 
                 alt="Kevin Hussein" 
-                className="w-9 h-9 object-contain"
+                className="w-8 h-8 lg:w-9 lg:h-9 object-contain"
               />
-              <span className="font-medium tracking-tight text-white/90">
+              <span className="text-sm lg:text-base font-medium tracking-tight text-white/90">
                 Kevin Hussein
               </span>
             </Link>
 
             {/* Desktop nav */}
-            <nav className="flex items-center gap-1">
+            <nav className="justify-self-center flex items-center gap-1 lg:gap-1.5">
               <Link
                 to="/"
-                className="px-4 py-2 text-sm text-white/60 hover:text-white transition-colors duration-200 rounded-full hover:bg-white/5"
+                className="px-2.5 lg:px-3.5 py-1.5 text-sm text-white/65 hover:text-white transition-colors duration-200 rounded-full hover:bg-white/5"
               >
                 Início
               </Link>
               <Link
                 to="/#sobre"
-                className="px-4 py-2 text-sm text-white/60 hover:text-white transition-colors duration-200 rounded-full hover:bg-white/5"
+                className="px-2.5 lg:px-3.5 py-1.5 text-sm text-white/65 hover:text-white transition-colors duration-200 rounded-full hover:bg-white/5"
               >
                 Sobre
               </Link>
-              
-              <div className="flex items-center gap-1 ml-2 mr-3">
+
+              <div className="flex items-center gap-1 ml-1 lg:ml-1.5">
                 {socialItems.map((social) => (
                   <a
                     key={social.href}
                     href={social.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2 text-white/40 hover:text-[#A855F7] transition-colors duration-200"
+                    className="p-1.5 lg:p-2 text-white/40 hover:text-[#A855F7] transition-colors duration-200"
                     aria-label={social.label}
                   >
-                    <social.icon size={18} />
+                    <social.icon size={17} />
                   </a>
                 ))}
               </div>
-
-              <Link
-                to="/meus-agendamentos"
-                className="btn-imperial px-4 py-2 text-xs font-medium tracking-wide rounded-full"
-              >
-                Já sou cliente
-              </Link>
             </nav>
+
+            <div className="justify-self-end w-[180px] lg:w-[220px] flex justify-end">
+              <Link
+                to={isClientLoggedIn ? '/meus-agendamentos' : '/agendar#cliente-login'}
+                className="h-10 lg:h-11 inline-flex items-center gap-2 px-4 lg:px-4.5 text-[11px] lg:text-xs font-semibold tracking-wide rounded-full transition-all duration-200"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.96) 0%, rgba(168, 85, 247, 0.96) 55%, rgba(196, 132, 252, 0.96) 100%)',
+                  color: 'rgba(255, 255, 255, 0.95)',
+                  border: '1px solid rgba(233, 213, 255, 0.45)',
+                  boxShadow: '0 10px 28px rgba(124, 58, 237, 0.38), inset 0 1px 0 rgba(255,255,255,0.2)',
+                }}
+              >
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full" style={{ background: 'rgba(255,255,255,0.2)' }}>
+                  {isClientLoggedIn ? <User size={12} /> : <LogIn size={12} />}
+                </span>
+                {accountLabel}
+              </Link>
+            </div>
           </div>
         </div>
       </header>
@@ -153,48 +202,65 @@ export default function Header() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 hidden lg:block"
+            className="fixed top-5 left-0 right-0 z-50 hidden lg:block px-4"
           >
-            <div className="liquid-glass-pill flex items-center gap-1 px-4 py-2.5">
-              <Link to="/" className="mr-2">
+            <div
+              className="liquid-glass-pill w-[min(92vw,720px)] mx-auto grid grid-cols-[96px_1fr_188px] xl:grid-cols-[112px_1fr_198px] items-center px-4 py-2"
+              style={{
+                borderColor: 'rgba(208, 172, 255, 0.28)',
+                boxShadow: '0 12px 34px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.2)',
+              }}
+            >
+              <Link to="/" className="inline-flex items-center w-[96px] xl:w-[112px]">
                 <img 
                   src="/LOGO SEM FUNDO.png" 
                   alt="Kevin Hussein" 
                   className="w-7 h-7 object-contain"
                 />
               </Link>
-              
-              <Link
-                to="/"
-                className="px-3 py-1.5 text-sm text-white/60 hover:text-white transition-colors duration-200 rounded-full hover:bg-white/5"
-              >
-                Início
-              </Link>
-              <Link
-                to="/#sobre"
-                className="px-3 py-1.5 text-sm text-white/60 hover:text-white transition-colors duration-200 rounded-full hover:bg-white/5"
-              >
-                Sobre
-              </Link>
-              
-              {socialItems.map((social) => (
-                <a
-                  key={social.href}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-1.5 text-white/40 hover:text-[#A855F7] transition-colors duration-200"
-                  aria-label={social.label}
+
+              <div className="justify-self-center flex items-center gap-1.5">
+                <Link
+                  to="/"
+                  className="px-3 py-1.5 text-sm text-white/65 hover:text-white transition-colors duration-200 rounded-full hover:bg-white/5"
                 >
-                  <social.icon size={16} />
-                </a>
-              ))}
+                  Início
+                </Link>
+                <Link
+                  to="/#sobre"
+                  className="px-3 py-1.5 text-sm text-white/65 hover:text-white transition-colors duration-200 rounded-full hover:bg-white/5"
+                >
+                  Sobre
+                </Link>
+
+                {socialItems.map((social) => (
+                  <a
+                    key={social.href}
+                    href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1.5 text-white/40 hover:text-[#A855F7] transition-colors duration-200"
+                    aria-label={social.label}
+                  >
+                    <social.icon size={16} />
+                  </a>
+                ))}
+              </div>
 
               <Link
-                to="/meus-agendamentos"
-                className="ml-2 btn-imperial px-3.5 py-1.5 text-xs font-medium tracking-wide rounded-full"
+                to={isClientLoggedIn ? '/meus-agendamentos' : '/agendar#cliente-login'}
+                className="justify-self-end h-10 inline-flex items-center gap-2 px-4 text-xs font-semibold tracking-wide rounded-full transition-all duration-200"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.96) 0%, rgba(168, 85, 247, 0.96) 55%, rgba(196, 132, 252, 0.96) 100%)',
+                  color: 'rgba(255, 255, 255, 0.95)',
+                  border: '1px solid rgba(233, 213, 255, 0.42)',
+                  boxShadow: '0 8px 24px rgba(124, 58, 237, 0.34), inset 0 1px 0 rgba(255,255,255,0.18)',
+                }}
               >
-                Já sou cliente
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full" style={{ background: 'rgba(255,255,255,0.2)' }}>
+                  {isClientLoggedIn ? <User size={12} /> : <LogIn size={12} />}
+                </span>
+                {accountLabel}
               </Link>
             </div>
           </motion.nav>

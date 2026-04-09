@@ -143,27 +143,59 @@ router.post('/', validate(bookingSchemas.create), asyncHandler(async (req, res) 
     type, date, time, duration,
     clientName, clientEmail, clientPhone, clientCpf, clientMessage 
   } = req.body;
+  const normalizedCpf = clientCpf ? String(clientCpf).replace(/\D/g, '') : null;
 
   console.log('📝 Criando agendamento:', { type, date, time, clientName, clientPhone, clientCpf });
 
-  // Verificar se slot está disponível (se existir)
-  const slot = SlotModel.findByDateTimeType(date, time, type);
-  if (slot && !slot.is_available) {
-    throw ApiError.conflict('Horário não disponível');
-  }
-
   // Transação atômica: cliente + booking + slot (tudo ou nada)
   const booking = runTransaction(() => {
-    // Buscar ou criar cliente
-    const client = ClientModel.findOrCreate({
-      name: clientName,
-      email: clientEmail,
-      phone: clientPhone,
-      cpf: clientCpf,
-    });
+    // Revalidar slot dentro da transação para evitar corrida em múltiplos cliques/requisições.
+    const slot = SlotModel.findByDateTimeType(date, time, type);
+    if (slot && !slot.is_available) {
+      throw ApiError.conflict('Horário não disponível');
+    }
+
+    // Regras por etapa:
+    // - Reunião: pode criar novo cliente
+    // - Teste/Sessão: exige cliente já cadastrado (CPF existente)
+    let client;
+    if (type === 'reuniao') {
+      client = ClientModel.findOrCreate({
+        name: clientName,
+        email: clientEmail,
+        phone: clientPhone,
+        cpf: normalizedCpf,
+      });
+    } else {
+      if (!normalizedCpf) {
+        throw ApiError.badRequest('CPF é obrigatório para este tipo de agendamento');
+      }
+
+      const hasCompletedMeeting = BookingModel.hasCompletedMeetingByCpf(normalizedCpf);
+      if (!hasCompletedMeeting) {
+        throw ApiError.badRequest('Acesso liberado somente para clientes com reunião concluída');
+      }
+
+      client = ClientModel.findByCpf(normalizedCpf);
+      if (!client) {
+        throw ApiError.badRequest('Para esta etapa, é necessário um cliente já cadastrado');
+      }
+    }
 
     if (!client || !client.id) {
       throw ApiError.internal('Erro ao criar cliente');
+    }
+
+    // Deduplicação: evita múltiplos cliques criando o mesmo agendamento ativo.
+    const duplicate = BookingModel.findActiveDuplicate({
+      type,
+      date,
+      time,
+      clientCpf: normalizedCpf,
+      clientPhone,
+    });
+    if (duplicate) {
+      throw ApiError.conflict('Este agendamento já existe e está ativo');
     }
 
     // Incrementar contador de agendamentos do cliente
@@ -179,14 +211,17 @@ router.post('/', validate(bookingSchemas.create), asyncHandler(async (req, res) 
       clientName,
       clientEmail,
       clientPhone,
-      clientCpf,
+      clientCpf: normalizedCpf,
       clientMessage,
       clientReputation: client.reputation,
     });
 
-    // Marcar slot como ocupado
+    // Marcar slot como ocupado com guarda de concorrência
     if (slot) {
-      SlotModel.markAsBooked(slot.id, newBooking.id);
+      const bookedSlot = SlotModel.markAsBooked(slot.id, newBooking.id);
+      if (!bookedSlot) {
+        throw ApiError.conflict('Horário acabou de ser reservado por outro cliente');
+      }
     }
 
     return newBooking;

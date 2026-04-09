@@ -68,8 +68,19 @@ export const ClientModel = {
    * Busca cliente por CPF
    */
   findByCpf(cpf) {
-    const stmt = db.prepare('SELECT * FROM clients WHERE cpf = ?');
-    return stmt.get(cpf);
+    if (!cpf) return null;
+
+    const normalizedCpf = String(cpf).replace(/\D/g, '');
+    if (!normalizedCpf) return null;
+
+    // Busca tolerante: encontra CPF salvo com ou sem máscara.
+    const stmt = db.prepare(`
+      SELECT * FROM clients
+      WHERE REPLACE(REPLACE(REPLACE(REPLACE(cpf, '.', ''), '-', ''), '(', ''), ')', '') = ?
+      LIMIT 1
+    `);
+
+    return stmt.get(normalizedCpf);
   },
 
   /**

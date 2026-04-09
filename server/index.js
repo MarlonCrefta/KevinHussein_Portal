@@ -170,6 +170,20 @@ async function startServer() {
     // 4. Configurar serviço WhatsApp nas rotas
     setWhatsAppService(whatsappService);
 
+    // 4.1 Auto iniciar conexão WhatsApp (Baileys) junto ao backend
+    if (config.whatsapp.autoConnect) {
+      logger.info('Iniciando conexão automática do WhatsApp...');
+      whatsappService.connect()
+        .then(() => {
+          logger.info('Conexão automática do WhatsApp iniciada');
+        })
+        .catch((err) => {
+          logger.error({ err }, 'Falha ao iniciar conexão automática do WhatsApp');
+        });
+    } else {
+      logger.info('Auto conexão do WhatsApp desabilitada por configuração');
+    }
+
     // 5. Iniciar scheduler
     logger.info('Iniciando scheduler de mensagens...');
     schedulerService.start();
@@ -186,8 +200,15 @@ async function startServer() {
     // ============================================
     // GRACEFUL SHUTDOWN
     // ============================================
-    function gracefulShutdown(signal) {
+    async function gracefulShutdown(signal) {
       logger.info({ signal }, 'Encerrando servidor...');
+
+      try {
+        await whatsappService.shutdown();
+        logger.info('WhatsApp encerrado sem limpar sessão');
+      } catch (e) {
+        logger.error({ err: e }, 'Erro ao encerrar WhatsApp no shutdown');
+      }
       
       // 1. Parar de aceitar novas conexões
       server.close(() => {
@@ -216,8 +237,8 @@ async function startServer() {
       }, 10000);
     }
 
-    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => { gracefulShutdown('SIGINT'); });
+    process.on('SIGTERM', () => { gracefulShutdown('SIGTERM'); });
 
   } catch (error) {
     logger.fatal({ err: error }, 'Erro ao iniciar servidor');

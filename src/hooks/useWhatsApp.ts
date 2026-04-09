@@ -23,6 +23,13 @@ interface UseWhatsAppReturn {
   refreshStatus: () => Promise<void>;
 }
 
+interface WhatsAppStatusData {
+  isReady: boolean;
+  isConnecting?: boolean;
+  qrCode: string | null;
+  clientInfo: ClientInfo | null;
+}
+
 export function useWhatsApp(): UseWhatsAppReturn {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -32,52 +39,69 @@ export function useWhatsApp(): UseWhatsAppReturn {
   
   const pollingRef = useRef<number | null>(null);
 
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+  }, []);
+
   const refreshStatus = useCallback(async () => {
     try {
       const response = await whatsappApi.getStatus();
       if (response.success) {
-        setIsConnected(response.data.isReady);
-        setQrCode(response.data.qrCode);
-        setClientInfo(response.data.clientInfo);
+        const data = response.data as WhatsAppStatusData;
+        setIsConnected(data.isReady);
+        setQrCode(data.qrCode);
+        setClientInfo(data.clientInfo);
+        setIsConnecting(!!data.isConnecting && !data.isReady);
         
         // Parar polling se conectou
-        if (response.data.isReady && pollingRef.current) {
-          clearInterval(pollingRef.current);
-          pollingRef.current = null;
+        if (data.isReady) {
+          stopPolling();
           setIsConnecting(false);
         }
       }
     } catch (err: any) {
       console.error('Erro ao verificar status WhatsApp:', err);
     }
-  }, []);
+  }, [stopPolling]);
+
+  // After refreshStatus is defined, refresh startPolling reference
+  const startPollingStable = useCallback(() => {
+    if (pollingRef.current) return;
+    pollingRef.current = window.setInterval(() => {
+      refreshStatus();
+    }, 2000);
+  }, [refreshStatus]);
 
   const connect = useCallback(async () => {
+    if (isConnecting || isConnected) {
+      return;
+    }
+
     setIsConnecting(true);
     setError(null);
 
     try {
+      stopPolling();
+
       const response = await whatsappApi.connect();
       
       if (response.success) {
         // Iniciar polling para verificar QR Code e conexão
-        pollingRef.current = window.setInterval(() => {
-          refreshStatus();
-        }, 2000);
+        startPollingStable();
       }
     } catch (err: any) {
       setError(err.message || 'Erro ao conectar WhatsApp');
       setIsConnecting(false);
     }
-  }, [refreshStatus]);
+  }, [isConnecting, isConnected, startPollingStable, stopPolling]);
 
   const disconnect = useCallback(async () => {
     try {
       // Parar polling
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
+      stopPolling();
 
       const response = await whatsappApi.disconnect();
       
@@ -89,7 +113,7 @@ export function useWhatsApp(): UseWhatsAppReturn {
     } catch (err: any) {
       setError(err.message || 'Erro ao desconectar WhatsApp');
     }
-  }, []);
+  }, [stopPolling]);
 
   const sendMessage = useCallback(async (phone: string, message: string): Promise<boolean> => {
     if (!isConnected) {
@@ -110,13 +134,15 @@ export function useWhatsApp(): UseWhatsAppReturn {
   useEffect(() => {
     refreshStatus();
 
+    // Manter polling ativo enquanto não estiver conectado,
+    // inclusive quando conexão é iniciada pelo backend (autoConnect).
+    startPollingStable();
+
     // Cleanup
     return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-      }
+      stopPolling();
     };
-  }, [refreshStatus]);
+  }, [refreshStatus, startPollingStable, stopPolling]);
 
   return {
     isConnected,

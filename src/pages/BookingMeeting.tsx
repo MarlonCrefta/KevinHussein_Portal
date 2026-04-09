@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Clock, Calendar, User, Phone, Mail, MessageS
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, isBefore, startOfToday, getDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import BaroqueModernBackground from '../components/ui/BaroqueModernBackground'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { slotsApi, bookingsApi, clientsApi, Slot, Client, Booking } from '../services/api'
 
 // Validação de CPF
@@ -55,6 +55,53 @@ function getReputationColor(reputation: string): string {
 const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
 type Step = 'date' | 'time' | 'form' | 'confirm'
+type BookingFlowType = 'reuniao' | 'teste_anatomico' | 'sessao'
+
+const flowConfig: Record<BookingFlowType, {
+  stepBadge: string
+  title: string
+  subtitle: string
+  slotType: BookingFlowType
+  allowedWeekdays: number[]
+  allowedWeekdaysLabel: string
+  requiresExistingClient: boolean
+  cta: string
+  activeBookingLabel: string
+}> = {
+  reuniao: {
+    stepBadge: '1ª Etapa — Quartas-feiras',
+    title: 'Reunião Estratégica',
+    subtitle: 'Duração: 2 horas · Horários: 10h, 12h, 14h, 16h, 18h',
+    slotType: 'reuniao',
+    allowedWeekdays: [3],
+    allowedWeekdaysLabel: 'quartas-feiras',
+    requiresExistingClient: false,
+    cta: 'Confirmar agendamento',
+    activeBookingLabel: 'reunião',
+  },
+  teste_anatomico: {
+    stepBadge: '2ª Etapa — Terças-feiras',
+    title: 'Teste Anatômico',
+    subtitle: 'Duração: 2 horas · Horários definidos por disponibilidade',
+    slotType: 'teste_anatomico',
+    allowedWeekdays: [2],
+    allowedWeekdaysLabel: 'terças-feiras',
+    requiresExistingClient: true,
+    cta: 'Confirmar teste',
+    activeBookingLabel: 'teste anatômico',
+  },
+  sessao: {
+    stepBadge: '3ª Etapa — Quinta a Domingo',
+    title: 'Sessão de Tatuagem',
+    subtitle: 'Datas liberadas após aprovação do projeto e sinal',
+    slotType: 'sessao',
+    allowedWeekdays: [4, 5, 6, 0],
+    allowedWeekdaysLabel: 'quinta a domingo',
+    requiresExistingClient: true,
+    cta: 'Confirmar sessão',
+    activeBookingLabel: 'sessão',
+  },
+}
 
 interface FormData {
   name: string
@@ -65,6 +112,11 @@ interface FormData {
 }
 
 export default function BookingMeeting() {
+  const [searchParams] = useSearchParams()
+  const flowTypeParam = searchParams.get('tipo') as BookingFlowType | null
+  const bookingFlowType: BookingFlowType = flowTypeParam && flowConfig[flowTypeParam] ? flowTypeParam : 'reuniao'
+  const bookingFlow = flowConfig[bookingFlowType]
+
   const [currentStep, setCurrentStep] = useState<Step>('date')
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
@@ -88,12 +140,13 @@ export default function BookingMeeting() {
   const [isLoading, setIsLoading] = useState(false)
   const [submitError, setSubmitError] = useState<string>('')
 
+  const isKnownClient = !!clientHistory
+
   // Carregar datas disponíveis
   useEffect(() => {
     async function loadSlots() {
       try {
-        // Filtrar apenas slots do tipo 'reuniao'
-        const response = await slotsApi.list({ available: true, type: 'reuniao' })
+        const response = await slotsApi.list({ available: true, type: bookingFlow.slotType })
         if (response.success) {
           const dates = new Set(response.data.map(slot => slot.date))
           setAvailableDates(dates)
@@ -103,7 +156,7 @@ export default function BookingMeeting() {
       }
     }
     loadSlots()
-  }, [])
+  }, [bookingFlow.slotType])
 
   // Carregar horários disponíveis quando data é selecionada
   useEffect(() => {
@@ -111,8 +164,7 @@ export default function BookingMeeting() {
       async function loadSlotsForDate() {
         try {
           const dateStr = format(selectedDate!, 'yyyy-MM-dd')
-          // Filtrar apenas slots do tipo 'reuniao'
-          const response = await slotsApi.getAvailable(dateStr, 'reuniao')
+          const response = await slotsApi.getAvailable(dateStr, bookingFlow.slotType)
           if (response.success) {
             setAvailableSlots(response.data.sort((a, b) => a.time.localeCompare(b.time)))
           }
@@ -122,7 +174,7 @@ export default function BookingMeeting() {
       }
       loadSlotsForDate()
     }
-  }, [selectedDate])
+  }, [selectedDate, bookingFlow.slotType])
 
   const today = startOfToday()
   const monthStart = startOfMonth(currentMonth)
@@ -205,9 +257,13 @@ export default function BookingMeeting() {
               clientsApi.findByCpf(cleanValue).catch(() => null),
               bookingsApi.getByCpf(cleanValue).catch(() => null)
             ])
+
+            const detectedClient = clientResponse?.success
+              ? clientResponse.data
+              : (bookingsResponse?.success ? bookingsResponse.data.client : null)
             
-            if (clientResponse?.success) {
-              setClientHistory(clientResponse.data)
+            if (detectedClient) {
+              setClientHistory(detectedClient)
               setShowHistory(true)
             } else {
               setClientHistory(null)
@@ -217,7 +273,7 @@ export default function BookingMeeting() {
             // Verificar se tem reunião pendente ou confirmada
             if (bookingsResponse?.success && bookingsResponse.data.bookings) {
               const activeBookings = bookingsResponse.data.bookings.filter(
-                (b: Booking) => b.type === 'reuniao' && ['pendente', 'confirmado'].includes(b.status)
+                (b: Booking) => b.type === bookingFlow.slotType && ['pendente', 'confirmado'].includes(b.status)
               )
               if (activeBookings.length > 0) {
                 setExistingBookings(activeBookings)
@@ -256,6 +312,7 @@ export default function BookingMeeting() {
   const isFormValid = () => {
     const cleanPhone = formData.phone.replace(/\D/g, '')
     const cleanCpf = formData.cpf.replace(/\D/g, '')
+    const existingClientRuleOk = bookingFlow.requiresExistingClient ? isKnownClient : true
     
     return (
       formData.name.trim().length >= 2 &&
@@ -264,6 +321,7 @@ export default function BookingMeeting() {
       formData.email.includes('.') &&
       cleanCpf.length === 11 &&
       validateCPF(cleanCpf) &&
+      existingClientRuleOk &&
       !cpfError &&
       !phoneError
     )
@@ -271,6 +329,11 @@ export default function BookingMeeting() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (isLoading) {
+      return
+    }
+
     setSubmitError('')
     
     // Validar CPF antes de submeter
@@ -286,13 +349,18 @@ export default function BookingMeeting() {
       setPhoneError('Telefone inválido')
       return
     }
+
+    if (bookingFlow.requiresExistingClient && !isKnownClient) {
+      setSubmitError('Para esta etapa, use um CPF já cadastrado no estúdio.')
+      return
+    }
     
     // Criar agendamento
     if (selectedDate && selectedTime && selectedSlotId) {
       setIsLoading(true)
       try {
         await bookingsApi.create({
-          type: 'reuniao',
+          type: bookingFlow.slotType,
           date: format(selectedDate, 'yyyy-MM-dd'),
           time: selectedTime,
           clientName: formData.name.trim(),
@@ -360,13 +428,13 @@ export default function BookingMeeting() {
             style={{ filter: 'drop-shadow(0 0 12px rgba(139, 92, 246, 0.3))' }}
           />
           <span className="inline-block px-4 py-1.5 rounded-full bg-neon-muted text-neon text-xs font-medium mb-4 tracking-wide">
-            1ª Etapa — Quartas-feiras
+            {bookingFlow.stepBadge}
           </span>
           <h1 className="text-2xl sm:text-3xl font-semibold text-bone mb-2 tracking-tight">
-            Reunião Estratégica
+            {bookingFlow.title}
           </h1>
           <p className="text-bone-muted text-sm">
-            Duração: 2 horas · Horários: 10h, 12h, 14h, 16h, 18h
+            {bookingFlow.subtitle}
           </p>
         </motion.div>
 
@@ -442,10 +510,10 @@ export default function BookingMeeting() {
                   ))}
                 </div>
 
-                {/* Info: Quartas-feiras */}
+                {/* Info: dias disponíveis */}
                 <div className="mb-4 p-3 rounded-xl" style={{ background: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.15)' }}>
                   <p className="text-xs text-center" style={{ color: '#A9A3B8' }}>
-                    <span style={{ color: '#A855F7' }}>●</span> Reuniões disponíveis apenas às <strong style={{ color: '#C4B5FD' }}>quartas-feiras</strong>
+                    <span style={{ color: '#A855F7' }}>●</span> {bookingFlow.title} disponível apenas às <strong style={{ color: '#C4B5FD' }}>{bookingFlow.allowedWeekdaysLabel}</strong>
                   </p>
                 </div>
 
@@ -458,7 +526,7 @@ export default function BookingMeeting() {
 
                     const dateStr = format(day, 'yyyy-MM-dd')
                     const hasSlots = availableDates.has(dateStr)
-                    const isWednesday = getDay(day) === 3
+                    const isPreferredDay = bookingFlow.allowedWeekdays.includes(getDay(day))
                     const isDisabled = isBefore(day, today) || !hasSlots
                     const isSelected = selectedDate && isSameDay(day, selectedDate)
                     const isTodayDate = isToday(day)
@@ -474,7 +542,7 @@ export default function BookingMeeting() {
                           aspect-square rounded-lg flex flex-col items-center justify-center text-sm font-medium
                           transition-all duration-200 relative
                           ${isDisabled 
-                            ? isWednesday && isCurrentMonth && !isBefore(day, today)
+                            ? isPreferredDay && isCurrentMonth && !isBefore(day, today)
                               ? 'text-bone-faded/50 cursor-not-allowed bg-neon/5 border border-neon/10'
                               : 'text-bone-faded/40 cursor-not-allowed bg-graphite/20' 
                             : isSelected
@@ -732,7 +800,7 @@ export default function BookingMeeting() {
                         </div>
                       </motion.div>
                     )}
-                    {showHistory && !clientHistory && (
+                    {showHistory && !clientHistory && !bookingFlow.requiresExistingClient && (
                       <motion.p
                         initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -742,8 +810,19 @@ export default function BookingMeeting() {
                         Novo cliente - Seja bem-vindo!
                       </motion.p>
                     )}
+
+                    {showHistory && !clientHistory && bookingFlow.requiresExistingClient && (
+                      <motion.p
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-amber-400 text-xs mt-1.5 flex items-center gap-1"
+                      >
+                        <AlertCircle size={12} />
+                        Para esta etapa, use um CPF já cadastrado no estúdio.
+                      </motion.p>
+                    )}
                     
-                    {/* Mostrar reunião existente */}
+                    {/* Mostrar agendamento ativo do mesmo tipo */}
                     {showExistingBooking && existingBookings.length > 0 && (
                       <motion.div
                         initial={{ opacity: 0, y: -5 }}
@@ -753,7 +832,7 @@ export default function BookingMeeting() {
                         <div className="flex items-center gap-2 mb-3">
                           <Calendar size={16} className="text-neon" />
                           <span className="text-sm font-semibold text-neon">
-                            Você já tem uma reunião agendada!
+                            Você já tem um(a) {bookingFlow.activeBookingLabel} agendado(a)!
                           </span>
                         </div>
                         {existingBookings.map((booking) => (
@@ -834,7 +913,7 @@ export default function BookingMeeting() {
                           </>
                         ) : (
                           <>
-                            Confirmar agendamento
+                            {bookingFlow.cta}
                             <Check size={18} />
                           </>
                         )}
