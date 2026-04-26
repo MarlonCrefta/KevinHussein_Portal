@@ -24,7 +24,7 @@ export default function AdminLogin() {
     if (authError) {
       clearError()
     }
-  }, [username, password])
+  }, [username, password, authError, clearError])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,13 +34,7 @@ export default function AdminLogin() {
     }
 
     setIsSubmitting(true)
-
-    const success = await login(username, password)
-    
-    if (success) {
-      navigate('/admin/dashboard')
-    }
-    
+    await login(username, password)
     setIsSubmitting(false)
   }
 

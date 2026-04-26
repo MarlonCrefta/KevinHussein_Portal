@@ -72,6 +72,9 @@ async function request<T>(
     if (err.name === 'AbortError') {
       throw new Error('Tempo de conexão esgotado. Verifique sua internet.');
     }
+    if (err.name === 'TypeError') {
+      throw new Error('Servidor indisponível. Verifique sua conexão.');
+    }
     throw err;
   } finally {
     clearTimeout(timeoutId);
@@ -95,7 +98,21 @@ async function request<T>(
  * Processa a resposta da API
  */
 async function handleResponse<T>(response: Response): Promise<T> {
-  const data = await response.json();
+  let data: any;
+  try {
+    data = await response.json();
+  } catch {
+    if (!response.ok) {
+      const msg =
+        response.status === 502 || response.status === 503
+          ? 'Servidor indisponível. Tente novamente em instantes.'
+          : response.status === 0
+          ? 'Servidor indisponível. Verifique sua conexão.'
+          : `Erro ${response.status} na comunicação com o servidor.`;
+      throw new Error(msg);
+    }
+    throw new Error('Resposta inválida do servidor.');
+  }
 
   if (!response.ok) {
     const error = new Error(data.error || 'Erro na requisição');
