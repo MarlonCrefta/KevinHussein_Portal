@@ -132,17 +132,22 @@ export function useWhatsApp(): UseWhatsAppReturn {
 
   // Verificar status inicial
   useEffect(() => {
-    refreshStatus();
+    let stopped = false;
 
-    // Manter polling ativo enquanto não estiver conectado,
-    // inclusive quando conexão é iniciada pelo backend (autoConnect).
-    startPollingStable();
+    const start = async () => {
+      await refreshStatus();
+      if (!stopped) {
+        startPollingStable();
+      }
+    };
 
-    // Cleanup
+    start();
+
     return () => {
+      stopped = true;
       stopPolling();
     };
-  }, [refreshStatus, startPollingStable, stopPolling]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     isConnected,

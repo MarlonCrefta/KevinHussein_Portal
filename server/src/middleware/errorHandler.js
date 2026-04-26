@@ -100,7 +100,7 @@ export function errorHandler(err, req, res, next) {
 export function notFoundHandler(req, res) {
   res.status(404).json({
     success: false,
-    error: `Rota não encontrada: ${req.method} ${req.originalUrl}`,
+    error: 'Rota não encontrada',
   });
 }
 

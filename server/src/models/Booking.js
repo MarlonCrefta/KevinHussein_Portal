@@ -325,6 +325,22 @@ export const BookingModel = {
       params.push(filters.type);
     }
 
+    if (filters.search) {
+      query += ' AND (client_name LIKE ? OR client_phone LIKE ? OR client_email LIKE ? OR client_cpf LIKE ?)';
+      const searchTerm = `%${filters.search}%`;
+      params.push(searchTerm, searchTerm, searchTerm, searchTerm);
+    }
+
+    if (filters.startDate) {
+      query += ' AND date >= ?';
+      params.push(filters.startDate);
+    }
+
+    if (filters.endDate) {
+      query += ' AND date <= ?';
+      params.push(filters.endDate);
+    }
+
     const stmt = db.prepare(query);
     return stmt.get(...params).count;
   },

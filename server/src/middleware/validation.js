@@ -9,8 +9,24 @@ import { z } from 'zod';
 // Exemplos válidos: 41999308946, (41)99930-8946, (41) 99930-8946
 const phoneRegex = /^(\d{10,11}|\(?[1-9]{2}\)?\s?9?[0-9]{4}-?[0-9]{4})$/;
 
-// Regex para CPF - aceita formato limpo ou formatado
-const cpfRegex = /^\d{11}$|^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/;
+// Validação de CPF com checksum (algoritmo da Receita Federal)
+function isValidCpf(cpf) {
+  const clean = String(cpf || '').replace(/\D/g, '');
+  if (clean.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(clean)) return false;
+
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += parseInt(clean[i]) * (10 - i);
+  let remainder = (sum * 10) % 11;
+  if (remainder === 10 || remainder === 11) remainder = 0;
+  if (remainder !== parseInt(clean[9])) return false;
+
+  sum = 0;
+  for (let i = 0; i < 10; i++) sum += parseInt(clean[i]) * (11 - i);
+  remainder = (sum * 10) % 11;
+  if (remainder === 10 || remainder === 11) remainder = 0;
+  return remainder === parseInt(clean[10]);
+}
 
 /**
  * Schemas de Autenticação
@@ -18,19 +34,19 @@ const cpfRegex = /^\d{11}$|^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/;
 export const authSchemas = {
   login: z.object({
     username: z.string().min(3, 'Usuário deve ter no mínimo 3 caracteres'),
-    password: z.string().min(4, 'Senha deve ter no mínimo 4 caracteres'),
+    password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres'),
   }),
 
   register: z.object({
     username: z.string().min(3, 'Usuário deve ter no mínimo 3 caracteres'),
-    password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
+    password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres'),
     name: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres'),
     role: z.enum(['admin', 'user']).optional(),
   }),
 
   changePassword: z.object({
     currentPassword: z.string().min(1, 'Senha atual é obrigatória'),
-    newPassword: z.string().min(6, 'Nova senha deve ter no mínimo 6 caracteres'),
+    newPassword: z.string().min(8, 'Nova senha deve ter no mínimo 8 caracteres'),
   }),
 };
 
@@ -42,7 +58,7 @@ export const clientSchemas = {
     name: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres'),
     email: z.string().email('Email inválido').optional().or(z.literal('')),
     phone: z.string().regex(phoneRegex, 'Telefone inválido'),
-    cpf: z.string().regex(cpfRegex, 'CPF inválido').optional().or(z.literal('')),
+    cpf: z.string().refine(val => !val || isValidCpf(val), { message: 'CPF inválido' }).optional().or(z.literal('')),
     notes: z.string().optional(),
   }),
 
@@ -50,7 +66,7 @@ export const clientSchemas = {
     name: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres').optional(),
     email: z.string().email('Email inválido').optional().or(z.literal('')),
     phone: z.string().regex(phoneRegex, 'Telefone inválido').optional(),
-    cpf: z.string().regex(cpfRegex, 'CPF inválido').optional().or(z.literal('')),
+    cpf: z.string().refine(val => !val || isValidCpf(val), { message: 'CPF inválido' }).optional().or(z.literal('')),
     notes: z.string().optional(),
     reputation: z.enum(['alta', 'boa', 'neutro', 'baixa']).optional(),
   }),
@@ -68,7 +84,7 @@ export const bookingSchemas = {
     clientName: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres'),
     clientEmail: z.string().email('Email inválido').optional().or(z.literal('')),
     clientPhone: z.string().regex(phoneRegex, 'Telefone inválido'),
-    clientCpf: z.string().regex(cpfRegex, 'CPF inválido').optional().or(z.literal('')),
+    clientCpf: z.string().refine(val => !val || isValidCpf(val), { message: 'CPF inválido' }).optional().or(z.literal('')),
     clientMessage: z.string().max(500, 'Mensagem muito longa').optional(),
   }),
 

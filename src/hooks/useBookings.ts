@@ -26,6 +26,8 @@ interface UseBookingsReturn {
     search?: string;
     startDate?: string;
     endDate?: string;
+    limit?: number;
+    offset?: number;
   }) => Promise<void>;
   fetchStats: () => Promise<void>;
   fetchUpcoming: (limit?: number) => Promise<Booking[]>;
@@ -50,6 +52,8 @@ export function useBookings(): UseBookingsReturn {
     search?: string;
     startDate?: string;
     endDate?: string;
+    limit?: number;
+    offset?: number;
   }) => {
     setIsLoading(true);
     setError(null);

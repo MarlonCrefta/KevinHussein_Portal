@@ -78,6 +78,27 @@ router.put('/:key', authenticate, (req, res) => {
     const { key } = req.params;
     const { value } = req.body;
 
+    const ALLOWED_KEYS = [
+      'late_tolerance_minutes',
+      'no_show_charge_enabled',
+      'no_show_charge_amount',
+      'session_deposit_amount',
+      'session_deposit_required',
+      'studio_name',
+      'studio_address',
+      'studio_hours',
+      'studio_instagram',
+      'studio_whatsapp',
+      'welcome_message',
+      'wa_send_confirmation',
+      'wa_send_reminder',
+      'wa_send_completion',
+    ];
+
+    if (!ALLOWED_KEYS.includes(key)) {
+      return res.status(400).json({ success: false, error: 'Chave de configuração inválida' });
+    }
+
     if (value === undefined || value === null) {
       return res.status(400).json({
         success: false,
@@ -131,8 +152,26 @@ router.put('/', authenticate, (req, res) => {
         updated_at = datetime('now')
     `);
 
+    const ALLOWED_KEYS = [
+      'late_tolerance_minutes',
+      'no_show_charge_enabled',
+      'no_show_charge_amount',
+      'session_deposit_amount',
+      'session_deposit_required',
+      'studio_name',
+      'studio_address',
+      'studio_hours',
+      'studio_instagram',
+      'studio_whatsapp',
+      'welcome_message',
+      'wa_send_confirmation',
+      'wa_send_reminder',
+      'wa_send_completion',
+    ];
+
     const updateMany = db.transaction((entries) => {
       for (const [key, value] of entries) {
+        if (!ALLOWED_KEYS.includes(key)) continue;
         stmt.run(key, String(value));
       }
     });

@@ -10,6 +10,7 @@ import {
   generateToken, 
   generateRefreshToken, 
   verifyToken,
+  verifyRefreshToken,
   validate,
   authSchemas,
   asyncHandler,
@@ -60,7 +61,7 @@ router.post('/refresh', asyncHandler(async (req, res) => {
     throw ApiError.badRequest('Refresh token é obrigatório');
   }
 
-  const decoded = verifyToken(refreshToken);
+  const decoded = verifyRefreshToken(refreshToken);
   if (!decoded) {
     throw ApiError.unauthorized('Refresh token inválido ou expirado');
   }

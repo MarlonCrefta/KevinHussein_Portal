@@ -5,6 +5,7 @@
 
 import { Router } from 'express';
 import { authenticate, asyncHandler, ApiError } from '../middleware/index.js';
+import db from '../config/database.js';
 
 const router = Router();
 
@@ -19,7 +20,7 @@ export function setWhatsAppService(service) {
  * GET /api/whatsapp/status
  * Status da conexão WhatsApp
  */
-router.get('/status', (req, res) => {
+router.get('/status', authenticate, (req, res) => {
   if (!whatsappService) {
     return res.json({
       success: true,
@@ -103,7 +104,7 @@ router.post('/send', authenticate, asyncHandler(async (req, res) => {
 
   try {
     const result = await whatsappService.sendMessage(phone, message);
-    
+
     res.json({
       success: true,
       message: 'Mensagem enviada',
@@ -111,6 +112,58 @@ router.post('/send', authenticate, asyncHandler(async (req, res) => {
     });
   } catch (error) {
     throw ApiError.internal(`Erro ao enviar: ${error.message}`);
+  }
+}));
+
+/**
+ * POST /api/whatsapp/send-test
+ * Enviar mensagem de teste com template preenchido com dados fictícios
+ */
+router.post('/send-test', authenticate, asyncHandler(async (req, res) => {
+  const { templateType, phone } = req.body;
+
+  if (!templateType || !phone) {
+    throw ApiError.badRequest('Tipo de template e telefone são obrigatórios');
+  }
+
+  if (!whatsappService || !whatsappService.isReady()) {
+    throw ApiError.badRequest('WhatsApp não está conectado. Conecte primeiro para enviar teste.');
+  }
+
+  // Buscar template do banco
+  const apiType = templateType === 'completion' ? 'followup' : templateType;
+  const row = db.prepare('SELECT template FROM message_templates WHERE type = ?').get(apiType);
+
+  if (!row) {
+    throw ApiError.badRequest('Template não encontrado');
+  }
+
+  // Preencher placeholders com dados fictícios
+  const sampleData = {
+    nome: 'João Silva (TESTE)',
+    telefone: phone,
+    email: 'joao@email.com',
+    tipo: 'Reunião de Criação',
+    data: 'segunda-feira, 6 de janeiro',
+    hora: '14:00',
+    horario: '14:00',
+    id: 'TEST-001',
+  };
+
+  let message = row.template;
+  Object.entries(sampleData).forEach(([key, value]) => {
+    message = message.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
+  });
+
+  try {
+    const result = await whatsappService.sendMessage(phone, message);
+    res.json({
+      success: true,
+      message: `Mensagem de teste enviada para ${phone}`,
+      data: result,
+    });
+  } catch (error) {
+    throw ApiError.internal(`Erro ao enviar teste: ${error.message}`);
   }
 }));
 

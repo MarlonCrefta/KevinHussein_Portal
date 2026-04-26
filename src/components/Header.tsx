@@ -71,13 +71,13 @@ export default function Header() {
           }}
         />
         
-        <div className="relative flex items-center justify-between px-5 py-4">
+        <div className="relative flex items-center justify-between px-5 py-4 min-h-[64px]">
           {/* Logo — Estilo charutaria */}
           <Link to="/" className="flex items-center gap-2">
-            <motion.img 
-              src="/LOGO SEM FUNDO.png" 
-              alt="Kevin Hussein" 
-              className="w-8 h-8 object-contain"
+            <motion.img
+              src="/LOGO SEM FUNDO.png"
+              alt="Kevin Hussein"
+              className="h-8 md:h-10 w-8 md:w-10 object-contain"
               whileTap={{ scale: 0.95 }}
               style={{ 
                 filter: 'drop-shadow(0 0 15px rgba(168, 85, 247, 0.35))' 
@@ -97,24 +97,12 @@ export default function Header() {
           </Link>
 
           {/* CTA Button — Neon pill */}
-          <Link to={isClientLoggedIn ? '/meus-agendamentos' : '/agendar#cliente-login'}>
-            <motion.div
-              className="relative inline-flex items-center gap-1.5 px-4.5 py-2.5 text-[11px] font-semibold tracking-[0.08em] uppercase rounded-full overflow-hidden"
-              style={{
-                background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.96) 0%, rgba(168, 85, 247, 0.96) 55%, rgba(196, 132, 252, 0.96) 100%)',
-                boxShadow: '0 10px 28px rgba(124, 58, 237, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
-                border: '1px solid rgba(233, 213, 255, 0.45)',
-                color: 'rgba(255, 255, 255, 0.95)',
-              }}
-              whileHover={{ y: -1, scale: 1.025 }}
-              whileTap={{ scale: 0.97 }}
-              transition={{ duration: 0.18 }}
-            >
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full" style={{ background: 'rgba(255,255,255,0.2)' }}>
-                {isClientLoggedIn ? <User size={12} /> : <LogIn size={12} />}
-              </span>
-              <span>{accountLabel}</span>
-            </motion.div>
+          <Link
+            to={isClientLoggedIn ? '/meus-agendamentos' : '/agendar#cliente-login'}
+            className="btn btn-ghost btn-sm"
+          >
+            {isClientLoggedIn ? <User size={14} /> : <LogIn size={14} />}
+            <span>{accountLabel}</span>
           </Link>
         </div>
       </motion.header>
@@ -129,13 +117,13 @@ export default function Header() {
         `}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5">
-          <div className="liquid-glass grid grid-cols-[180px_1fr_180px] lg:grid-cols-[220px_1fr_220px] items-center px-4 lg:px-5 py-2.5 lg:py-3">
+          <div className="liquid-glass grid grid-cols-[180px_1fr_180px] lg:grid-cols-[220px_1fr_220px] items-center px-4 lg:px-5 py-2.5 lg:py-3 min-h-[64px]">
             {/* Logo */}
             <Link to="/" className="inline-flex items-center gap-2.5 lg:gap-3 w-[180px] lg:w-[220px]">
-              <img 
-                src="/LOGO SEM FUNDO.png" 
-                alt="Kevin Hussein" 
-                className="w-8 h-8 lg:w-9 lg:h-9 object-contain"
+              <img
+                src="/LOGO SEM FUNDO.png"
+                alt="Kevin Hussein"
+                className="h-8 md:h-10 w-8 md:w-10 object-contain"
               />
               <span className="text-sm lg:text-base font-medium tracking-tight text-white/90">
                 Kevin Hussein
@@ -143,7 +131,7 @@ export default function Header() {
             </Link>
 
             {/* Desktop nav */}
-            <nav className="justify-self-center flex items-center gap-1 lg:gap-1.5">
+            <nav className="justify-self-center flex items-center gap-4 lg:gap-6">
               <Link
                 to="/"
                 className="px-2.5 lg:px-3.5 py-1.5 text-sm text-white/65 hover:text-white transition-colors duration-200 rounded-full hover:bg-white/5"
@@ -176,17 +164,9 @@ export default function Header() {
             <div className="justify-self-end w-[180px] lg:w-[220px] flex justify-end">
               <Link
                 to={isClientLoggedIn ? '/meus-agendamentos' : '/agendar#cliente-login'}
-                className="h-10 lg:h-11 inline-flex items-center gap-2 px-4 lg:px-4.5 text-[11px] lg:text-xs font-semibold tracking-wide rounded-full transition-all duration-200"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.96) 0%, rgba(168, 85, 247, 0.96) 55%, rgba(196, 132, 252, 0.96) 100%)',
-                  color: 'rgba(255, 255, 255, 0.95)',
-                  border: '1px solid rgba(233, 213, 255, 0.45)',
-                  boxShadow: '0 10px 28px rgba(124, 58, 237, 0.38), inset 0 1px 0 rgba(255,255,255,0.2)',
-                }}
+                className="btn btn-ghost btn-sm"
               >
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full" style={{ background: 'rgba(255,255,255,0.2)' }}>
-                  {isClientLoggedIn ? <User size={12} /> : <LogIn size={12} />}
-                </span>
+                {isClientLoggedIn ? <User size={14} /> : <LogIn size={14} />}
                 {accountLabel}
               </Link>
             </div>
@@ -219,7 +199,7 @@ export default function Header() {
                 />
               </Link>
 
-              <div className="justify-self-center flex items-center gap-1.5">
+              <div className="justify-self-center flex items-center gap-4 lg:gap-6">
                 <Link
                   to="/"
                   className="px-3 py-1.5 text-sm text-white/65 hover:text-white transition-colors duration-200 rounded-full hover:bg-white/5"
@@ -249,17 +229,9 @@ export default function Header() {
 
               <Link
                 to={isClientLoggedIn ? '/meus-agendamentos' : '/agendar#cliente-login'}
-                className="justify-self-end h-10 inline-flex items-center gap-2 px-4 text-xs font-semibold tracking-wide rounded-full transition-all duration-200"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.96) 0%, rgba(168, 85, 247, 0.96) 55%, rgba(196, 132, 252, 0.96) 100%)',
-                  color: 'rgba(255, 255, 255, 0.95)',
-                  border: '1px solid rgba(233, 213, 255, 0.42)',
-                  boxShadow: '0 8px 24px rgba(124, 58, 237, 0.34), inset 0 1px 0 rgba(255,255,255,0.18)',
-                }}
+                className="justify-self-end btn btn-ghost btn-sm"
               >
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full" style={{ background: 'rgba(255,255,255,0.2)' }}>
-                  {isClientLoggedIn ? <User size={12} /> : <LogIn size={12} />}
-                </span>
+                {isClientLoggedIn ? <User size={14} /> : <LogIn size={14} />}
                 {accountLabel}
               </Link>
             </div>

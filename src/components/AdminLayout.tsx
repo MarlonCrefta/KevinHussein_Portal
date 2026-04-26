@@ -101,16 +101,10 @@ export default function AdminLayout() {
                 <Link
                   key={item.href}
                   to={item.href}
-                  className={`
-                    flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200
-                    ${isActive 
-                      ? 'bg-indigo-600 text-white' 
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
-                    }
-                  `}
+                  className={`admin-nav-item${isActive ? ' active' : ''}`}
                 >
-                  <item.icon size={20} />
-                  <span className="font-medium">{item.label}</span>
+                  <item.icon size={18} />
+                  <span>{item.label}</span>
                 </Link>
               )
             })}

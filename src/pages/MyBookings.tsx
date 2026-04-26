@@ -6,6 +6,8 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
+  CheckCheck,
+  UserX,
   ArrowLeft,
   MapPin,
   Phone,
@@ -37,7 +39,7 @@ export default function MyBookings() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [client, setClient] = useState<Client | null>(null)
   const [searched, setSearched] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(!!sessionStorage.getItem('kh_client_access'))
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
 
   useEffect(() => {
@@ -100,12 +102,12 @@ export default function MyBookings() {
   const goToBookingChoice = () => navigate('/agendar')
 
   const getStatusConfig = (status: string) => {
-    const configs: Record<string, { bg: string; text: string; border: string; icon: typeof Clock; label: string; dot: string }> = {
-      pendente: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20', icon: Clock, label: 'Pendente', dot: 'bg-amber-400' },
-      confirmado: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20', icon: CheckCircle, label: 'Confirmado', dot: 'bg-emerald-400' },
-      cancelado: { bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20', icon: XCircle, label: 'Cancelado', dot: 'bg-red-400' },
-      concluido: { bg: 'bg-violet-500/10', text: 'text-violet-400', border: 'border-violet-500/20', icon: CheckCircle, label: 'Concluido', dot: 'bg-violet-400' },
-      nao_compareceu: { bg: 'bg-orange-500/10', text: 'text-orange-400', border: 'border-orange-500/20', icon: AlertCircle, label: 'Nao Compareceu', dot: 'bg-orange-400' },
+    const configs: Record<string, { bg: string; text: string; border: string; icon: typeof Clock; label: string; dot: string; cssClass: string }> = {
+      pendente: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20', icon: Clock, label: 'Pendente', dot: 'bg-amber-400', cssClass: 'status-pendente' },
+      confirmado: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20', icon: CheckCircle, label: 'Confirmado', dot: 'bg-emerald-400', cssClass: 'status-confirmado' },
+      cancelado: { bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20', icon: XCircle, label: 'Cancelado', dot: 'bg-red-400', cssClass: 'status-cancelado' },
+      concluido: { bg: 'bg-violet-500/10', text: 'text-violet-400', border: 'border-violet-500/20', icon: CheckCheck, label: 'Concluido', dot: 'bg-violet-400', cssClass: 'status-concluido' },
+      nao_compareceu: { bg: 'bg-orange-500/10', text: 'text-orange-400', border: 'border-orange-500/20', icon: UserX, label: 'Nao Compareceu', dot: 'bg-orange-400', cssClass: 'status-nao-compareceu' },
     }
     return configs[status] || configs.pendente
   }
@@ -355,7 +357,7 @@ export default function MyBookings() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="text-center p-3 rounded-xl" style={{ background: 'rgba(255, 255, 255, 0.03)' }}>
                   <div className="text-xl font-bold" style={{ color: '#E8E4F0' }}>{client.totalBookings}</div>
                   <div className="text-[10px] uppercase tracking-wider mt-0.5" style={{ color: '#7A7489' }}>Total</div>
@@ -376,11 +378,13 @@ export default function MyBookings() {
                 {bookings.length} agendamento{bookings.length !== 1 ? 's' : ''}
               </h3>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {bookings.map((booking, index) => {
                   const statusCfg = getStatusConfig(booking.status)
                   const bookingDate = parseISO(booking.date)
                   const isBookingToday = isToday(bookingDate)
+
+                  const StatusIcon = statusCfg.icon
 
                   return (
                     <motion.button
@@ -394,7 +398,6 @@ export default function MyBookings() {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                          <div className={`w-2 h-2 rounded-full shrink-0 ${statusCfg.dot}`} />
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-semibold truncate" style={{ color: '#E8E4F0' }}>
@@ -414,7 +417,8 @@ export default function MyBookings() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className={`text-[10px] font-semibold uppercase tracking-wider ${statusCfg.text}`}>
+                          <span className={`status-badge status-badge-dark ${statusCfg.cssClass}`}>
+                            <StatusIcon size={10} />
                             {statusCfg.label}
                           </span>
                           <ChevronRight size={16} style={{ color: '#4A4558' }} />

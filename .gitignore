@@ -7,19 +7,33 @@ node_modules/
 dist/
 build/
 
+# Local runtime outputs
+logs/
+server/logs/
+
 # Environment files
 .env
+.env.*
+!.env.example
 .env.local
 .env.*.local
 server/.env
+server/.env.*
+!server/.env.example
 
 # Database
 *.sqlite
 *.sqlite3
-server/data/*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+server/data/
 
 # WhatsApp session
 server/auth_info_baileys/
+server/auth_info_baileys_diag/
+
+# Backups
+server/backups/
 
 # IDE
 .idea/
@@ -39,6 +53,9 @@ coverage/
 # Temporary files
 *.tmp
 *.temp
+
+# Misc generated
+.cache/
 
 # SSL certificates (don't commit real ones!)
 nginx/ssl/*.key

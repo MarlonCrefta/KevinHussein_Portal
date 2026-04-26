@@ -640,6 +640,15 @@ export const messagesApi = {
   },
 };
 
+export const whatsappTestApi = {
+  async sendTest(templateType: string, phone: string) {
+    return request<{ success: boolean; message: string }>('/whatsapp/send-test', {
+      method: 'POST',
+      body: JSON.stringify({ templateType, phone }),
+    });
+  },
+};
+
 // ============================================
 // HEALTH CHECK
 // ============================================

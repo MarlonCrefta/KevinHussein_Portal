@@ -2,7 +2,7 @@ import { motion, useScroll, useTransform } from 'framer-motion'
 import { ArrowRight, MapPin } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useRef, useEffect, useState } from 'react'
-
+import HeroCanvas from '../components/HeroCanvas'
 export default function Home() {
   const heroRef = useRef<HTMLElement>(null)
   const [driftX, setDriftX] = useState(0)
@@ -74,7 +74,7 @@ export default function Home() {
             LAYER 2: Overlays cinematográficos
             ───────────────────────────────────────────────────────────── */}
         {/* Vignette elegante */}
-        <div 
+        <div
           className="absolute inset-0"
           style={{
             background: `
@@ -89,7 +89,7 @@ export default function Home() {
         />
         
         {/* Gradient vertical dramático */}
-        <div 
+        <div
           className="absolute inset-0"
           style={{
             background: 'linear-gradient(to bottom, rgba(5, 5, 15, 0.6) 0%, rgba(5, 5, 15, 0.15) 40%, rgba(5, 5, 15, 0.98) 100%)',
@@ -97,12 +97,15 @@ export default function Home() {
         />
 
         {/* Halo roxo neon central */}
-        <div 
+        <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background: 'radial-gradient(ellipse 70% 50% at 50% 45%, rgba(139, 92, 246, 0.08) 0%, rgba(168, 85, 247, 0.03) 40%, transparent 70%)',
           }}
         />
+
+        {/* Aurora Gradient Mesh — fundo vivo */}
+        <HeroCanvas />
 
         {/* ─────────────────────────────────────────────────────────────
             LAYER 3: CONTEÚDO PRINCIPAL
@@ -210,19 +213,15 @@ export default function Home() {
               
               <Link to="/agendar">
                 <motion.button
-                  className="group relative px-10 py-4 rounded-full overflow-hidden"
+                  className="btn btn-primary btn-xl group relative rounded-full overflow-hidden"
                   style={{
-                    background: 'linear-gradient(135deg, #8B5CF6 0%, #A855F7 50%, #C084FC 100%)',
                     backgroundSize: '200% 200%',
-                    color: '#FFFFFF',
                     fontWeight: 600,
-                    fontSize: '0.95rem',
                     letterSpacing: '0.08em',
                     textTransform: 'uppercase',
-                    boxShadow: '0 4px 30px rgba(139, 92, 246, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
                     border: '1px solid rgba(168, 85, 247, 0.3)',
                   }}
-                  whileHover={{ 
+                  whileHover={{
                     scale: 1.05,
                     boxShadow: '0 8px 50px rgba(168, 85, 247, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.25)',
                   }}
@@ -230,7 +229,7 @@ export default function Home() {
                   animate={{
                     backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
                   }}
-                  transition={{ 
+                  transition={{
                     backgroundPosition: { duration: 4, repeat: Infinity, ease: 'linear' },
                     scale: { duration: 0.25, ease: 'easeOut' },
                   }}

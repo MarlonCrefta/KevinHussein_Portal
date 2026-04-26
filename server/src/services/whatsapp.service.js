@@ -374,8 +374,12 @@ class WhatsAppService {
     let formattedPhone = phone.replace(/\D/g, '');
     
     // Adicionar código do país (55 para Brasil) se não tiver
-    if (formattedPhone.length === 10 || formattedPhone.length === 11) {
+    if (formattedPhone.startsWith('55') && (formattedPhone.length === 12 || formattedPhone.length === 13)) {
+      // já formatado corretamente com código de país
+    } else if (formattedPhone.length === 10 || formattedPhone.length === 11) {
       formattedPhone = `55${formattedPhone}`;
+    } else {
+      throw new Error(`Número de telefone com formato desconhecido: ${formattedPhone}`);
     }
     
     let jid = `${formattedPhone}@s.whatsapp.net`;

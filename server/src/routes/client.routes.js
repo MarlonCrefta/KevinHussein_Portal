@@ -7,6 +7,7 @@ import { Router } from 'express';
 import { ClientModel, BookingModel } from '../models/index.js';
 import { 
   authenticate, 
+  optionalAuth,
   validate,
   clientSchemas,
   asyncHandler,
@@ -138,8 +139,10 @@ router.delete('/:id', authenticate, asyncHandler(async (req, res) => {
 /**
  * GET /api/clients/phone/:phone
  * Buscar cliente por telefone
+ * - Autenticado (admin): retorna dados completos
+ * - Público: retorna apenas nome e reputação
  */
-router.get('/phone/:phone', asyncHandler(async (req, res) => {
+router.get('/phone/:phone', optionalAuth, asyncHandler(async (req, res) => {
   const { phone } = req.params;
   const client = ClientModel.findByPhone(phone);
 
@@ -147,17 +150,23 @@ router.get('/phone/:phone', asyncHandler(async (req, res) => {
     throw ApiError.notFound('Cliente não encontrado');
   }
 
+  if (req.user) {
+    return res.json({ success: true, data: client });
+  }
+
   res.json({
     success: true,
-    data: client,
+    data: { name: client.name, reputation: client.reputation },
   });
 }));
 
 /**
  * GET /api/clients/cpf/:cpf
  * Buscar cliente por CPF
+ * - Autenticado (admin): retorna dados completos
+ * - Público: retorna apenas nome e reputação
  */
-router.get('/cpf/:cpf', asyncHandler(async (req, res) => {
+router.get('/cpf/:cpf', optionalAuth, asyncHandler(async (req, res) => {
   const { cpf } = req.params;
   const client = ClientModel.findByCpf(cpf);
 
@@ -165,9 +174,13 @@ router.get('/cpf/:cpf', asyncHandler(async (req, res) => {
     throw ApiError.notFound('Cliente não encontrado');
   }
 
+  if (req.user) {
+    return res.json({ success: true, data: client });
+  }
+
   res.json({
     success: true,
-    data: client,
+    data: { name: client.name, reputation: client.reputation },
   });
 }));
 

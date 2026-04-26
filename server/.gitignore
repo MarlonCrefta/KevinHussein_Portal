@@ -1,5 +1,14 @@
 node_modules/
 .wwebjs_cache/
+data/
+backups/
+logs/
+auth_info_baileys/
+auth_info_baileys_diag/
+.env
+.env.*
+!.env.example
 *.log
-# NÃO ignorar auth_info_baileys - mantém sessão do WhatsApp
-# auth_info_baileys/wwebjs_auth/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal

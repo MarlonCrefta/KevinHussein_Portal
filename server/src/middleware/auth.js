@@ -13,8 +13,6 @@ import { UserModel } from '../models/index.js';
 export function generateToken(user) {
   const payload = {
     id: user.id,
-    username: user.username,
-    name: user.name,
     role: user.role,
   };
 
@@ -27,9 +25,20 @@ export function generateToken(user) {
  * Gera refresh token
  */
 export function generateRefreshToken(user) {
-  return jwt.sign({ id: user.id }, config.jwt.secret, {
+  return jwt.sign({ id: user.id }, config.jwt.refreshSecret, {
     expiresIn: config.jwt.refreshExpiresIn,
   });
+}
+
+/**
+ * Verifica refresh token JWT (usa secret separado)
+ */
+export function verifyRefreshToken(token) {
+  try {
+    return jwt.verify(token, config.jwt.refreshSecret);
+  } catch (error) {
+    return null;
+  }
 }
 
 /**
@@ -84,8 +93,8 @@ export function authenticate(req, res, next) {
     });
   }
 
-  // Adicionar usuário ao request
-  req.user = decoded;
+  // Adicionar usuário ao request (dados do DB, sem password)
+  req.user = user;
   next();
 }
 
@@ -138,6 +147,7 @@ export default {
   generateToken,
   generateRefreshToken,
   verifyToken,
+  verifyRefreshToken,
   authenticate,
   authorize,
   optionalAuth,

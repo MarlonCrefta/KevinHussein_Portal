@@ -1,227 +1,176 @@
 # Kevin Hussein Tattoo Studio
 
-> Sistema de gestão e agendamentos para o estúdio de tatuagem de Kevin Hussein.  
-> Desenvolvido por **Marlon Crefta** sob encomenda.
+Sistema de agendamento para estúdio de tatuagem com frontend React, API Express, banco SQLite e integração com WhatsApp.
 
----
+## Limite do repositório
 
-## Visão Geral
+O repositório Git real é esta pasta `tattoo-studio/`.
 
-Portal completo com duas interfaces:
+Os arquivos existentes na pasta pai do workspace, como `RELATORIO_FALHAS.md`, `IMG_5957.jpeg` e scripts de conveniência fora desta árvore, não fazem parte do versionamento deste projeto e não devem ser tratados como conteúdo do repo.
 
-- **Portal do Cliente** — Agendamento online em 3 etapas (Reunião → Teste Anatômico → Sessão), consulta de agendamentos por CPF
-- **Painel Admin** — Dashboard semanal, gestão de agendamentos/clientes/slots, configurações, integração WhatsApp
+## Visão geral
 
-### Cronograma Fixo do Estúdio
+O sistema possui duas superfícies principais:
 
-| Dia | Atividade | Duração | Horários |
-|-----|-----------|---------|----------|
-| Terça | Teste Anatômico | 2h | 10h, 12h, 14h, 16h, 18h |
-| Quarta | Reunião Estratégica | 2h | 10h, 12h, 14h, 16h, 18h |
-| Quinta a Domingo | Sessão de Tatuagem | variável | 10h, 12h, 14h, 16h, 18h |
-| Segunda | Folga | — | — |
+- Portal do cliente para consultar agenda disponível e criar agendamentos.
+- Painel administrativo para gerir clientes, slots, mensagens, configurações e status do WhatsApp.
 
----
+## Stack
 
-## Stack Tecnológica
+- Frontend: React 18, TypeScript, Vite 5, TailwindCSS, Framer Motion, date-fns, Lucide React
+- Backend: Node.js, Express, ESM em JavaScript, Zod, JWT, better-sqlite3, Baileys, node-cron, Pino
+- Banco: SQLite
+- Infra: Docker Compose, Docker multi-stage, Nginx
+- Testes: Vitest no frontend e no backend, Supertest no backend
 
-### Frontend
-- **React 18** + TypeScript + Vite 5
-- **TailwindCSS** (design system customizado)
-- **Framer Motion** (animações)
-- **date-fns** (datas em pt-BR)
-- **Lucide React** (ícones)
-- Code splitting com `React.lazy` + `Suspense`
-
-### Backend
-- **Node.js** + **Express** (API RESTful)
-- **SQLite** via better-sqlite3 (sem servidor de banco)
-- **JWT** (autenticação com refresh token)
-- **Baileys** (WhatsApp Web API)
-- **Zod** (validação de dados)
-- **node-cron** (scheduler de mensagens)
-- Rate limiting adaptável (dev/prod)
-
-### Infraestrutura
-- **Nginx** (proxy reverso + gzip + cache)
-- **PM2** (process manager)
-- **Docker** (opcional)
-- **Let's Encrypt** (SSL gratuito)
-
----
-
-## Estrutura do Projeto
-
-```
-tattoo-studio/
-├── src/                          # Frontend React
-│   ├── components/               # Layout, Header, Footer, AdminLayout
-│   ├── contexts/                 # AuthContext
-│   ├── hooks/                    # useAuth, useBookings, useSlots, useWhatsApp
-│   ├── pages/                    # Páginas públicas
-│   │   └── admin/                # Painel administrativo (8 páginas)
-│   ├── services/                 # api.ts (cliente HTTP + transformações)
-│   └── App.tsx                   # Rotas com lazy loading
-│
-├── server/                       # Backend Node.js
-│   ├── src/
-│   │   ├── config/               # database.js, env.js
-│   │   ├── middleware/           # auth (JWT), errorHandler, validation
-│   │   ├── models/               # Booking, Client, Slot, User, MessageTemplate
-│   │   ├── routes/               # auth, booking, client, slot, message, whatsapp, settings
-│   │   └── services/             # whatsapp.service, scheduler.service
-│   ├── data/                     # Banco SQLite (gitignored)
-│   └── index.js                  # Entry point
-│
-├── public/                       # Assets estáticos (logo, imagens)
-├── docs/                         # Documentação técnica
-│   ├── DEPLOY_GUIDE.md           # Guia completo de deploy no servidor
-│   ├── DESIGN_SYSTEM.md          # Tokens de design e paleta
-│   └── EMAIL_EVALUATION.md       # Avaliação de comunicação
-├── nginx/                        # Config Nginx para produção
-├── docker-compose.yml            # Deploy Docker (opcional)
-├── LICENSE                       # Licença proprietária
-└── README.md                     # Este arquivo
-```
-
----
-
-## Instalação Local (Desenvolvimento)
+## Desenvolvimento local
 
 ### Pré-requisitos
-- Node.js 18+ (recomendado 20 LTS)
-- npm 9+
 
-### Setup
+- Node.js 20 LTS
+- npm 10+
+
+### Instalação
 
 ```bash
-# 1. Clonar
-git clone https://github.com/MarlonCrefta/KevinHussein_Portal.git
-cd KevinHussein_Portal
-
-# 2. Frontend
 npm install
-
-# 3. Backend
 cd server
 npm install
-cp .env.example .env   # Editar com seus dados
 cd ..
+cp server/.env.example server/.env
 ```
 
-### Rodar em Desenvolvimento
+### Executar em desenvolvimento
+
+Frontend:
 
 ```bash
-# Terminal 1 — Frontend (porta 3000)
 npm run dev
-
-# Terminal 2 — Backend (porta 3001)
-cd server
-npm start
 ```
 
-### Variáveis de Ambiente
-
-**`server/.env`**
-```env
-NODE_ENV=development
-PORT=3001
-HOST=localhost
-FRONTEND_URL=http://localhost:3000
-JWT_SECRET=dev_secret_aqui
-JWT_REFRESH_SECRET=dev_refresh_secret_aqui
-ADMIN_USERNAME=kevin
-ADMIN_PASSWORD=2026
-```
-
----
-
-## Build para Produção
+Backend:
 
 ```bash
-npm run build    # Gera dist/ otimizado com code splitting
+cd server
+npm run dev
 ```
 
-Resultado:
-- Chunks separados por vendor (react, framer-motion, date-fns, lucide)
-- Minificação com Terser (sem console.log)
-- Lazy loading de todas as páginas
-- Assets com hash para cache busting
+Ou ambos em paralelo a partir da raiz do repo:
 
----
+```bash
+npm run start
+```
 
-## Deploy em Servidor
+## Produção com Docker
 
-Consulte o **[Guia de Deploy Completo](docs/DEPLOY_GUIDE.md)** com:
-- Setup PM2 + Nginx + SSL
-- Configuração de firewall
-- Backups automáticos
-- Estimativa de consumo (~40 MB RAM idle)
-- Troubleshooting
+Há dois arquivos de ambiente com propósitos diferentes:
 
----
+- `.env.example`: variáveis usadas pelo `docker-compose.yml`
+- `server/.env.example`: variáveis usadas diretamente pela API Express
 
-## API Endpoints
+Fluxo básico:
 
-### Públicos (sem autenticação)
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| POST | `/api/bookings` | Criar agendamento |
-| GET | `/api/bookings/cpf/:cpf` | Buscar por CPF |
-| GET | `/api/slots/available/:date` | Horários disponíveis |
+```bash
+cp .env.example .env
+cp server/.env.example server/.env
+docker-compose build
+docker-compose up -d
+```
 
-### Admin (JWT obrigatório)
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| POST | `/api/auth/login` | Login |
-| GET | `/api/bookings` | Listar agendamentos |
-| PATCH | `/api/bookings/:id/status` | Atualizar status |
-| GET | `/api/clients` | Listar clientes |
-| POST | `/api/slots/bulk` | Publicar horários |
-| GET | `/api/settings` | Configurações |
-| PUT | `/api/settings` | Atualizar configurações |
-| GET | `/api/whatsapp/status` | Status WhatsApp |
+O guia detalhado de deploy está em `docs/DEPLOY_GUIDE.md`.
 
----
+## Migrations e backup
 
-## Segurança
+Rodar migrations no backend:
 
-- **Autenticação JWT** com access + refresh tokens
-- **Rate limiting** adaptável por ambiente (5 tentativas de login em produção)
-- **bcrypt** para hash de senhas
-- **CORS** restritivo por origem
-- **Validação Zod** em todas as entradas da API
-- **Nginx headers** de segurança (X-Frame-Options, X-Content-Type-Options, etc.)
+```bash
+cd server
+npm run migrate
+npm run migrate:status
+npm run migrate:rollback
+```
 
----
+Gerar backup do banco:
 
-## Conformidade LGPD
+```bash
+cd server
+npm run backup
+```
 
-O sistema coleta dados pessoais de clientes (nome, CPF, e-mail, telefone) e segue as diretrizes da **Lei Geral de Proteção de Dados (Lei nº 13.709/2018)**:
+Em ambiente Linux/container, também existe o script shell:
 
-- **Controlador dos dados:** Kevin Hussein (proprietário do estúdio)
-- **Operador técnico:** Marlon Crefta (desenvolvedor)
-- Dados armazenados **localmente** em SQLite (sem nuvem de terceiros)
-- Termos de responsabilidade e direitos de imagem implementados
-- Possibilidade de exclusão de dados sob demanda
+```bash
+cd server
+./scripts/backup.sh
+```
 
----
+## Testes
+
+Frontend:
+
+```bash
+npm test
+```
+
+Backend:
+
+```bash
+cd server
+npm test
+```
+
+## Estrutura de pastas
+
+```text
+.
+├── .github/                  # Workflows e instruções auxiliares
+├── docs/                     # Documentação do projeto
+├── nginx/                    # Configuração do Nginx
+├── public/                   # Assets públicos do frontend
+├── scripts/                  # Scripts auxiliares da raiz
+├── server/                   # API Express e arquivos do backend
+│   ├── migrations/           # Migrations SQLite
+│   ├── scripts/              # Backup e CLI de migration
+│   ├── src/
+│   │   ├── config/           # Ambiente, logger, banco, constantes
+│   │   ├── middleware/       # Auth, validação e tratamento de erros
+│   │   ├── models/           # Acesso a dados
+│   │   ├── routes/           # Rotas HTTP
+│   │   └── services/         # Scheduler e WhatsApp
+│   └── tests/                # Testes do backend
+├── src/                      # Aplicação React
+│   ├── components/           # Layout e UI
+│   ├── contexts/             # Context providers
+│   ├── hooks/                # Hooks do frontend
+│   ├── pages/                # Páginas públicas e admin
+│   ├── services/             # Cliente HTTP e serviços do frontend
+│   └── test/                 # Setup de testes do frontend
+├── docker-compose.yml
+├── Dockerfile.frontend
+├── package.json
+└── README.md
+```
+
+## Arquivos ignorados pelo Git
+
+O repositório foi padronizado para não versionar artefatos locais e sensíveis, incluindo:
+
+- `node_modules/`
+- `dist/`
+- `server/data/`
+- `server/auth_info_baileys/`
+- `server/auth_info_baileys_diag/`
+- `server/backups/`
+- `.env` e variantes, exceto `.env.example`
+- arquivos SQLite temporários `.sqlite-shm` e `.sqlite-wal`
+
+## Documentação disponível
+
+- `docs/DEPLOY_GUIDE.md`: deploy e operação
+- `docs/DESIGN_SYSTEM.md`: diretrizes visuais já usadas no frontend
+- `docs/EMAIL_EVALUATION.md`: análise exploratória para canal de e-mail, ainda fora do escopo atual
+- `docs/README.md`: índice e status da documentação
 
 ## Licença
 
-Este é um **software proprietário** desenvolvido sob encomenda.
-
-- **Proprietário:** Kevin Hussein — titular dos direitos de uso e dados
-- **Desenvolvedor:** Marlon Crefta — autor do código-fonte
-
-Consulte o arquivo [LICENSE](LICENSE) para os termos completos.
-
----
-
-## Créditos
-
-| Papel | Nome |
-|-------|------|
-| **Desenvolvimento** | Marlon Crefta |
-| **Proprietário & Design** | Kevin Hussein |
-| **Contato Estúdio** | +55 41 99648-1275 |
+Software proprietário desenvolvido sob encomenda para Kevin Hussein.

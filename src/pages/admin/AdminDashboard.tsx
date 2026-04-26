@@ -1,14 +1,20 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Calendar, Clock, Users, Plus, ChevronRight, ChevronLeft, Wifi, WifiOff, MessageCircle, Ruler, Palette, AlertCircle, CheckCircle, Ban, Settings } from 'lucide-react'
+import {
+  Calendar, Clock, Users, Plus, ChevronRight, ChevronLeft,
+  Wifi, WifiOff, MessageCircle, Ruler, Palette, AlertCircle,
+  CheckCircle, Ban, Settings, TrendingUp, TrendingDown, UserX,
+} from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { format, parseISO, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday, addWeeks, getDay } from 'date-fns'
+import {
+  format, parseISO, startOfWeek, endOfWeek, eachDayOfInterval,
+  isSameDay, isToday, addWeeks, getDay, startOfMonth, endOfMonth,
+} from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useBookings } from '../../hooks'
 import { useAuthContext } from '../../contexts'
 import { Booking, bookingsApi, clientsApi, whatsappApi, Client } from '../../services/api'
 
-// Configuração fixa do cronograma do Kevin
 const scheduleConfig: Record<number, { type: string; label: string; icon: any; color: string; bgColor: string; borderColor: string; dotColor: string; textColor: string }> = {
   2: { type: 'teste_anatomico', label: 'Teste Anatômico', icon: Ruler, color: 'text-amber-600', bgColor: 'bg-amber-50', borderColor: 'border-amber-200', dotColor: 'bg-amber-500', textColor: 'text-amber-700' },
   3: { type: 'reuniao', label: 'Reunião', icon: MessageCircle, color: 'text-violet-600', bgColor: 'bg-violet-50', borderColor: 'border-violet-200', dotColor: 'bg-violet-500', textColor: 'text-violet-700' },
@@ -16,6 +22,19 @@ const scheduleConfig: Record<number, { type: string; label: string; icon: any; c
   5: { type: 'sessao', label: 'Sessão', icon: Palette, color: 'text-cyan-600', bgColor: 'bg-cyan-50', borderColor: 'border-cyan-200', dotColor: 'bg-cyan-500', textColor: 'text-cyan-700' },
   6: { type: 'sessao', label: 'Sessão', icon: Palette, color: 'text-cyan-600', bgColor: 'bg-cyan-50', borderColor: 'border-cyan-200', dotColor: 'bg-cyan-500', textColor: 'text-cyan-700' },
   0: { type: 'sessao', label: 'Sessão', icon: Palette, color: 'text-cyan-600', bgColor: 'bg-cyan-50', borderColor: 'border-cyan-200', dotColor: 'bg-cyan-500', textColor: 'text-cyan-700' },
+}
+
+function DeltaBadge({ delta, invert = false }: { delta: number | null; invert?: boolean }) {
+  if (delta === null) return null
+  const positive = invert ? delta < 0 : delta > 0
+  const neutral = delta === 0
+  if (neutral) return <span className="text-[10px] text-gray-400">=</span>
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium ${positive ? 'text-emerald-600' : 'text-red-500'}`}>
+      {positive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+      {Math.abs(delta)}%
+    </span>
+  )
 }
 
 const typeColors: Record<string, { bg: string; text: string; dot: string }> = {
@@ -45,8 +64,8 @@ export default function AdminDashboard() {
       await fetchStats()
       try {
         const [bookingsRes, clientsRes, wpRes] = await Promise.all([
-          bookingsApi.list({ limit: 500 }),
-          clientsApi.list({ limit: 500 }),
+          bookingsApi.list({ limit: 200 }),
+          clientsApi.list({ limit: 100 }),
           whatsappApi.getStatus().catch(() => ({ success: false, data: { isReady: false } }))
         ])
         if (bookingsRes.success) setAllBookings(bookingsRes.data.bookings)
@@ -62,7 +81,7 @@ export default function AdminDashboard() {
     const inicio = startOfWeek(baseDate, { weekStartsOn: 0 })
     const fim = endOfWeek(baseDate, { weekStartsOn: 0 })
     const dias = eachDayOfInterval({ start: inicio, end: fim })
-    
+
     return dias.map(dia => ({
       dia,
       dayOfWeek: getDay(dia),
@@ -73,7 +92,6 @@ export default function AdminDashboard() {
     }))
   }, [allBookings, weekOffset])
 
-  // Dados do dia atual
   const todayData = useMemo(() => {
     const today = new Date()
     const todayBookings = allBookings
@@ -84,24 +102,62 @@ export default function AdminDashboard() {
     return { bookings: todayBookings, schedule, dayOfWeek }
   }, [allBookings])
 
-  // Stats da semana atual
+  // KPIs do mês atual vs mês anterior
+  const kpis = useMemo(() => {
+    const now = new Date()
+    const monthStart = startOfMonth(now)
+    const monthEnd = endOfMonth(now)
+
+    const prevMonthStart = startOfMonth(new Date(now.getFullYear(), now.getMonth() - 1, 1))
+    const prevMonthEnd = endOfMonth(prevMonthStart)
+
+    const inRange = (b: Booking, start: Date, end: Date) => {
+      const d = parseISO(b.date)
+      return d >= start && d <= end
+    }
+
+    const thisMonth = allBookings.filter(b => inRange(b, monthStart, monthEnd))
+    const prevMonth = allBookings.filter(b => inRange(b, prevMonthStart, prevMonthEnd))
+
+    const concluded = (arr: Booking[]) => arr.filter(b => b.status === 'concluido').length
+    const confirmed = (arr: Booking[]) => arr.filter(b => b.status === 'confirmado' || b.status === 'concluido').length
+    const noShows = (arr: Booking[]) => arr.filter(b => b.status === 'nao_compareceu').length
+    const pending = allBookings.filter(b => b.status === 'pendente').length
+
+    const attendanceRate = (arr: Booking[]) => {
+      const conf = confirmed(arr)
+      return conf > 0 ? Math.round((concluded(arr) / conf) * 100) : 0
+    }
+
+    const delta = (curr: number, prev: number) => {
+      if (prev === 0) return null
+      return Math.round(((curr - prev) / prev) * 100)
+    }
+
+    return {
+      totalMes: { value: thisMonth.length, delta: delta(thisMonth.length, prevMonth.length) },
+      taxa: { value: attendanceRate(thisMonth), delta: delta(attendanceRate(thisMonth), attendanceRate(prevMonth)) },
+      noShows: { value: noShows(thisMonth), delta: delta(noShows(thisMonth), noShows(prevMonth)) },
+      pendentes: { value: pending, delta: null },
+    }
+  }, [allBookings])
+
   const weekStats = useMemo(() => {
     const baseDate = addWeeks(new Date(), weekOffset)
     const inicio = startOfWeek(baseDate, { weekStartsOn: 0 })
     const fim = endOfWeek(baseDate, { weekStartsOn: 0 })
-    
+
     const weekBookings = allBookings.filter(b => {
       const d = parseISO(b.date)
       return d >= inicio && d <= fim && b.status !== 'cancelado'
     })
-    
+
     return {
       total: weekBookings.length,
       reunioes: weekBookings.filter(b => b.type === 'reuniao').length,
       testes: weekBookings.filter(b => b.type === 'teste_anatomico').length,
       sessoes: weekBookings.filter(b => b.type === 'sessao').length,
       pendentes: weekBookings.filter(b => b.status === 'pendente').length,
-      confirmados: weekBookings.filter(b => b.status === 'confirmado').length,
     }
   }, [allBookings, weekOffset])
 
@@ -120,9 +176,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-[100dvh] pt-20 lg:pt-8 pb-16 px-4 sm:px-6 bg-slate-50">
       <div className="max-w-5xl mx-auto">
-        {/* ══════════════════════════════════════════
-            HEADER
-            ══════════════════════════════════════════ */}
+        {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -137,17 +191,78 @@ export default function AdminDashboard() {
                 {whatsappReady ? <Wifi size={14} /> : <WifiOff size={14} />}
                 <span className="hidden sm:inline">WhatsApp</span>
               </div>
-              <Link to="/admin/vagas" className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-medium shadow-sm">
+              <Link to="/admin/vagas" className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">
                 <Plus size={16} /> Publicar
               </Link>
             </div>
           </div>
         </motion.div>
 
-        {/* ══════════════════════════════════════════
-            CARD: HOJE
-            ══════════════════════════════════════════ */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="mb-6">
+        {/* KPIs do Mês */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          {/* Total do mês */}
+          <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-gray-500 font-medium">Este mês</p>
+              <DeltaBadge delta={kpis.totalMes.delta} />
+            </div>
+            <p className="text-2xl font-bold text-gray-800">{kpis.totalMes.value}</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">agendamentos</p>
+          </div>
+
+          {/* Taxa de comparecimento */}
+          <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-gray-500 font-medium">Comparecimento</p>
+              <DeltaBadge delta={kpis.taxa.delta} />
+            </div>
+            <p className={`text-2xl font-bold ${kpis.taxa.value >= 80 ? 'text-emerald-600' : kpis.taxa.value >= 50 ? 'text-amber-600' : 'text-red-500'}`}>
+              {kpis.taxa.value}%
+            </p>
+            <p className="text-[10px] text-gray-400 mt-0.5">taxa este mês</p>
+          </div>
+
+          {/* No-shows */}
+          <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-gray-500 font-medium">No-shows</p>
+              <DeltaBadge delta={kpis.noShows.delta} invert />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <p className={`text-2xl font-bold ${kpis.noShows.value > 2 ? 'text-red-500' : 'text-gray-800'}`}>
+                {kpis.noShows.value}
+              </p>
+              {kpis.noShows.value > 2 && <UserX size={16} className="text-red-400" />}
+            </div>
+            <p className="text-[10px] text-gray-400 mt-0.5">este mês</p>
+          </div>
+
+          {/* Pendentes */}
+          <Link
+            to="/admin/agendamentos"
+            className={`rounded-xl p-4 border shadow-sm transition-all ${
+              kpis.pendentes.value > 0
+                ? 'bg-amber-50 border-amber-200 hover:border-amber-300'
+                : 'bg-white border-gray-200'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-gray-500 font-medium">Pendentes</p>
+              {kpis.pendentes.value > 0 && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-white text-[9px] font-bold">
+                  {kpis.pendentes.value > 9 ? '9+' : kpis.pendentes.value}
+                </span>
+              )}
+            </div>
+            <p className={`text-2xl font-bold ${kpis.pendentes.value > 0 ? 'text-amber-600' : 'text-gray-800'}`}>
+              {kpis.pendentes.value}
+            </p>
+            <p className="text-[10px] text-gray-400 mt-0.5">aguardando ação</p>
+          </Link>
+        </motion.div>
+
+        {/* Card: Hoje */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-6">
           <div className={`rounded-2xl border-2 p-5 ${todayData.schedule ? `${todayData.schedule.bgColor} ${todayData.schedule.borderColor}` : 'bg-gray-50 border-gray-200'}`}>
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -163,8 +278,8 @@ export default function AdminDashboard() {
                 <div>
                   <h2 className="font-bold text-gray-800 text-lg">Hoje — {getDayTypeName(todayData.dayOfWeek)}</h2>
                   <p className="text-gray-500 text-sm">
-                    {todayData.bookings.length === 0 
-                      ? todayData.schedule ? 'Nenhum agendamento para hoje' : 'Dia de folga' 
+                    {todayData.bookings.length === 0
+                      ? todayData.schedule ? 'Nenhum agendamento para hoje' : 'Dia de folga'
                       : `${todayData.bookings.length} agendamento${todayData.bookings.length > 1 ? 's' : ''}`}
                   </p>
                 </div>
@@ -176,7 +291,6 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            {/* Lista de agendamentos de hoje */}
             {todayData.bookings.length > 0 && (
               <div className="space-y-2">
                 {todayData.bookings.map(apt => {
@@ -205,10 +319,8 @@ export default function AdminDashboard() {
           </div>
         </motion.div>
 
-        {/* ══════════════════════════════════════════
-            STATS DA SEMANA
-            ══════════════════════════════════════════ */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        {/* Stats da semana */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           <div className="bg-white rounded-xl p-4 border border-gray-200">
             <div className="flex items-center gap-2 mb-1">
               <span className="w-2.5 h-2.5 rounded-full bg-violet-500" />
@@ -239,18 +351,15 @@ export default function AdminDashboard() {
               <p className="text-xs text-gray-500 font-medium">Pendentes</p>
             </div>
             <p className="text-2xl font-bold text-amber-600">{weekStats.pendentes}</p>
-            <p className="text-[10px] text-gray-400">aguardando</p>
+            <p className="text-[10px] text-gray-400">esta semana</p>
           </div>
         </motion.div>
 
-        {/* ══════════════════════════════════════════
-            CALENDÁRIO SEMANAL COM CRONOGRAMA FIXO
-            ══════════════════════════════════════════ */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+        {/* Calendário Semanal */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <button onClick={() => setWeekOffset(w => w - 1)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500">
+              <button onClick={() => setWeekOffset(w => w - 1)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors">
                 <ChevronLeft size={18} />
               </button>
               <div className="text-center">
@@ -264,21 +373,19 @@ export default function AdminDashboard() {
                   </button>
                 )}
               </div>
-              <button onClick={() => setWeekOffset(w => w + 1)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500">
+              <button onClick={() => setWeekOffset(w => w + 1)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors">
                 <ChevronRight size={18} />
               </button>
             </div>
 
-            {/* Grid Semanal */}
             <div className="grid grid-cols-7 divide-x divide-gray-100">
               {weekData.map(({ dia, schedule, agendamentos }) => {
                 const isHoje = isToday(dia)
                 const isWorkDay = !!schedule
                 const ScheduleIcon = schedule?.icon || Clock
-                
+
                 return (
                   <div key={dia.toISOString()} className={`min-h-[220px] flex flex-col ${isHoje ? 'bg-violet-50/40' : !isWorkDay ? 'bg-gray-50/50' : ''}`}>
-                    {/* Dia Header */}
                     <div className={`px-2 py-2.5 text-center border-b ${isHoje ? 'bg-violet-100 border-violet-200' : 'bg-gray-50 border-gray-100'}`}>
                       <p className={`text-[10px] uppercase font-bold tracking-wider ${isHoje ? 'text-violet-600' : 'text-gray-400'}`}>
                         {format(dia, 'EEE', { locale: ptBR })}
@@ -286,7 +393,6 @@ export default function AdminDashboard() {
                       <p className={`text-xl font-bold ${isHoje ? 'text-violet-700' : 'text-gray-700'}`}>
                         {format(dia, 'd')}
                       </p>
-                      {/* Tipo do dia */}
                       {schedule ? (
                         <div className={`mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold ${schedule.bgColor} ${schedule.textColor} border ${schedule.borderColor}`}>
                           <ScheduleIcon size={9} />
@@ -296,8 +402,7 @@ export default function AdminDashboard() {
                         <p className="mt-1 text-[9px] text-gray-300 font-medium">Folga</p>
                       )}
                     </div>
-                    
-                    {/* Agendamentos do Dia */}
+
                     <div className="p-1.5 space-y-1 flex-1">
                       {agendamentos.length === 0 ? (
                         <div className="flex items-center justify-center h-full">
@@ -330,7 +435,6 @@ export default function AdminDashboard() {
               })}
             </div>
 
-            {/* Legenda e Cronograma Fixo */}
             <div className="border-t border-gray-100 bg-gray-50 px-5 py-3">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-5">
@@ -350,17 +454,20 @@ export default function AdminDashboard() {
           </div>
         </motion.div>
 
-        {/* ══════════════════════════════════════════
-            RESUMO GERAL + LINKS RÁPIDOS
-            ══════════════════════════════════════════ */}
+        {/* Links Rápidos */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           <Link to="/admin/vagas" className="flex flex-col items-center gap-2 p-4 bg-white rounded-xl border border-gray-200 hover:border-violet-300 hover:shadow-sm transition-all text-center">
             <Calendar size={22} className="text-violet-600" />
             <span className="text-xs font-medium text-gray-700">Publicar Horários</span>
           </Link>
-          <Link to="/admin/agendamentos" className="flex flex-col items-center gap-2 p-4 bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all text-center">
+          <Link to="/admin/agendamentos" className="relative flex flex-col items-center gap-2 p-4 bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all text-center">
             <Clock size={22} className="text-gray-600" />
             <span className="text-xs font-medium text-gray-700">Agendamentos</span>
+            {kpis.pendentes.value > 0 && (
+              <span className="absolute top-2 right-2 w-5 h-5 flex items-center justify-center rounded-full bg-amber-500 text-white text-[9px] font-bold">
+                {kpis.pendentes.value > 9 ? '9+' : kpis.pendentes.value}
+              </span>
+            )}
           </Link>
           <Link to="/admin/clientes" className="flex flex-col items-center gap-2 p-4 bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all text-center">
             <Users size={22} className="text-gray-600" />

@@ -38,7 +38,7 @@ export const UserModel = {
    * Busca usuário por ID
    */
   findById(id) {
-    const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
+    const stmt = db.prepare('SELECT id, username, name, role, created_at, updated_at FROM users WHERE id = ?');
     return stmt.get(id);
   },
 

@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
+import {
   MessageSquare, XCircle, RefreshCw, Power, Smartphone,
   CheckCircle, Clock, PartyPopper, Save, RotateCcw,
-  Eye, EyeOff, Copy, Check
+  Eye, EyeOff, Copy, Check, Send, Phone, AlertCircle,
 } from 'lucide-react'
 import { useWhatsApp } from '../../hooks'
-import { messagesApi } from '../../services/api'
+import { messagesApi, whatsappTestApi } from '../../services/api'
 
 // Helper para templates de mensagem
 const messageConfigService = {
@@ -721,21 +721,24 @@ interface TemplateEditorProps {
   renderPreview: (template: MessageTemplate) => string
 }
 
-function TemplateEditor({ 
-  template, 
+function TemplateEditor({
+  template,
   config,
   saveSuccess,
   copiedVar,
   availableVariables,
-  onToggle, 
-  onSave, 
+  onToggle,
+  onSave,
   onReset,
   onCopyVariable,
-  renderPreview
+  renderPreview,
 }: TemplateEditorProps) {
   const [localTemplate, setLocalTemplate] = useState(template.message)
   const [hasChanges, setHasChanges] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [testPhone, setTestPhone] = useState('')
+  const [isSendingTest, setIsSendingTest] = useState(false)
+  const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null)
 
   useEffect(() => {
     setLocalTemplate(template.message)
@@ -755,6 +758,21 @@ function TemplateEditor({
   const handleReset = () => {
     onReset()
     setHasChanges(false)
+  }
+
+  const handleSendTest = async () => {
+    if (!testPhone.trim()) return
+    setIsSendingTest(true)
+    setTestResult(null)
+    try {
+      const res = await whatsappTestApi.sendTest(config.type, testPhone.trim())
+      setTestResult({ ok: res.success, msg: res.message || 'Enviado!' })
+    } catch (e: any) {
+      setTestResult({ ok: false, msg: e?.message || 'Erro ao enviar. Verifique se o WhatsApp está conectado.' })
+    } finally {
+      setIsSendingTest(false)
+      setTimeout(() => setTestResult(null), 5000)
+    }
   }
 
   return (
@@ -850,30 +868,80 @@ function TemplateEditor({
           </div>
         </div>
 
-        {/* Variables */}
-        <div className="rounded-2xl bg-white border border-gray-200 p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Variáveis Disponíveis</h3>
-          <p className="text-gray-500 text-sm mb-4">
-            Clique para copiar e cole no template
-          </p>
-          <div className="space-y-2">
-            {availableVariables.map((variable) => (
+        {/* Variables + Teste */}
+        <div className="space-y-4">
+          <div className="rounded-2xl bg-white border border-gray-200 p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Variáveis Disponíveis</h3>
+            <p className="text-gray-500 text-sm mb-4">Clique para copiar e cole no template</p>
+            <div className="space-y-2">
+              {availableVariables.map((variable) => (
+                <button
+                  key={variable.name}
+                  onClick={() => onCopyVariable(variable.name)}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 hover:border-indigo-200 hover:bg-gray-100 text-left transition-all group"
+                >
+                  <div>
+                    <div className="text-gray-800 text-sm font-mono">{`{${variable.name}}`}</div>
+                    <div className="text-gray-400 text-xs">{variable.description}</div>
+                  </div>
+                  {copiedVar === variable.name ? (
+                    <Check size={16} className="text-emerald-500" />
+                  ) : (
+                    <Copy size={16} className="text-gray-500 group-hover:text-indigo-600 transition-colors" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Enviar Teste */}
+          <div className="rounded-2xl bg-white border border-gray-200 p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <Send size={16} className="text-indigo-600" />
+              <h3 className="font-semibold text-gray-800">Enviar Teste</h3>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">
+              Envia este template com dados fictícios para validar a mensagem antes de ativar.
+            </p>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="tel"
+                  value={testPhone}
+                  onChange={e => setTestPhone(e.target.value)}
+                  placeholder="(41) 99999-9999"
+                  className="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
               <button
-                key={variable.name}
-                onClick={() => onCopyVariable(variable.name)}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 hover:border-indigo-200 hover:bg-gray-100 text-left transition-all group"
+                onClick={handleSendTest}
+                disabled={!testPhone.trim() || isSendingTest}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
               >
-                <div>
-                  <div className="text-gray-800 text-sm font-mono">{`{${variable.name}}`}</div>
-                  <div className="text-gray-400 text-xs">{variable.description}</div>
-                </div>
-                {copiedVar === variable.name ? (
-                  <Check size={16} className="text-emerald-500" />
+                {isSendingTest ? (
+                  <RefreshCw size={14} className="animate-spin" />
                 ) : (
-                  <Copy size={16} className="text-gray-500 group-hover:text-indigo-600 transition-colors" />
+                  <Send size={14} />
                 )}
+                Testar
               </button>
-            ))}
+            </div>
+
+            {testResult && (
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`mt-3 flex items-center gap-2 p-2.5 rounded-lg text-sm ${
+                  testResult.ok
+                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+                    : 'bg-red-50 border border-red-200 text-red-700'
+                }`}
+              >
+                {testResult.ok ? <Check size={14} /> : <AlertCircle size={14} />}
+                {testResult.msg}
+              </motion.div>
+            )}
           </div>
         </div>
       </div>

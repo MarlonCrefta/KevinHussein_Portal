@@ -83,7 +83,7 @@ export default function AdminLogin() {
                   required
                   placeholder="Digite seu usuário"
                   autoComplete="username"
-                  className="w-full pl-12 pr-4 py-3 rounded-lg bg-white border border-gray-300 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                  className="input-light pl-12 pr-4"
                 />
               </div>
             </div>
@@ -101,7 +101,7 @@ export default function AdminLogin() {
                   required
                   placeholder="Digite sua senha"
                   autoComplete="current-password"
-                  className="w-full pl-12 pr-12 py-3 rounded-lg bg-white border border-gray-300 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                  className="input-light pl-12 pr-12"
                 />
                 <button
                   type="button"
@@ -123,10 +123,10 @@ export default function AdminLogin() {
               </motion.p>
             )}
 
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3.5 text-base font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all"
+              className="btn btn-admin-primary btn-md w-full"
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">

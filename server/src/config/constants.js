@@ -34,14 +34,6 @@ export const USER_ROLE = {
   ADMIN: 'admin',
 };
 
-/** Tipos de mensagem */
-export const MESSAGE_TYPE = {
-  CONFIRMATION: 'confirmacao',
-  REMINDER: 'lembrete',
-  CANCELLATION: 'cancelamento',
-  FOLLOWUP: 'followup',
-};
-
 /** Dias da semana e suas atividades */
 export const SCHEDULE = {
   MONDAY: { day: 1, activity: null }, // Folga
@@ -68,7 +60,6 @@ export default {
   BOOKING_TYPE,
   CLIENT_REPUTATION,
   USER_ROLE,
-  MESSAGE_TYPE,
   SCHEDULE,
   DEFAULT_TIMES,
   PAGINATION,

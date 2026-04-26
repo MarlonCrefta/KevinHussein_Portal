@@ -414,3 +414,433 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 180px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::after { display: none; }
+}
+
+/* ── Fluid Typography Scale ─────────────────────────────────── */
+:root {
+  --text-xs:   clamp(0.688rem, 0.6rem + 0.2vw, 0.75rem);   /* 11→12px */
+  --text-sm:   clamp(0.813rem, 0.75rem + 0.3vw, 0.875rem);  /* 13→14px */
+  --text-base: clamp(0.938rem, 0.85rem + 0.4vw, 1rem);      /* 15→16px */
+  --text-lg:   clamp(1.063rem, 0.95rem + 0.5vw, 1.125rem);  /* 17→18px */
+  --text-xl:   clamp(1.188rem, 1.05rem + 0.65vw, 1.25rem);  /* 19→20px */
+  --text-2xl:  clamp(1.375rem, 1.2rem + 0.85vw, 1.5rem);    /* 22→24px */
+  --text-3xl:  clamp(1.688rem, 1.4rem + 1.4vw, 1.875rem);   /* 27→30px */
+  --text-4xl:  clamp(2rem,     1.7rem + 1.5vw, 2.25rem);    /* 32→36px */
+  --text-5xl:  clamp(2.5rem,   2rem + 2.5vw, 3rem);         /* 40→48px */
+}
+
+/* Aplicar escala fluida nos elementos semânticos */
+body { font-size: var(--text-base); }
+
+.text-xs   { font-size: var(--text-xs)   !important; }
+.text-sm   { font-size: var(--text-sm)   !important; }
+.text-base { font-size: var(--text-base) !important; }
+.text-lg   { font-size: var(--text-lg)   !important; }
+.text-xl   { font-size: var(--text-xl)   !important; }
+.text-2xl  { font-size: var(--text-2xl)  !important; }
+.text-3xl  { font-size: var(--text-3xl)  !important; }
+.text-4xl  { font-size: var(--text-4xl)  !important; }
+.text-5xl  { font-size: var(--text-5xl)  !important; }
+
+/* Ajustar line-height por tamanho */
+.text-xs, .text-sm { line-height: 1.5; }
+.text-base, .text-lg { line-height: 1.6; }
+.text-xl, .text-2xl { line-height: 1.4; }
+.text-3xl, .text-4xl, .text-5xl { line-height: 1.2; }
+
+/* ── Input System ───────────────────────────────────────────── */
+
+/* Input base — dark theme (público) */
+.input-dark {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 3rem; /* 12px vertical, 16px right, 48px left p/ ícone */
+  background: rgba(26, 26, 31, 0.6);
+  border: 1px solid rgba(217, 212, 198, 0.1);
+  border-radius: 0.75rem; /* 12px — rounded-xl */
+  color: #D9D4C6;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  -webkit-appearance: none;
+}
+
+.input-dark::placeholder {
+  color: rgba(217, 212, 198, 0.35);
+}
+
+.input-dark:focus {
+  outline: none;
+  border-color: rgba(201, 60, 255, 0.35);
+  box-shadow: 0 0 0 3px rgba(201, 60, 255, 0.08);
+}
+
+.input-dark.input-error {
+  border-color: rgba(176, 112, 112, 0.5);
+  box-shadow: 0 0 0 3px rgba(176, 112, 112, 0.08);
+}
+
+/* Input sem ícone */
+.input-dark.no-icon {
+  padding-left: 1rem;
+}
+
+/* Input icon wrapper */
+.input-icon-wrap {
+  position: relative;
+}
+
+.input-icon-wrap .input-icon {
+  position: absolute;
+  left: 0.875rem; /* 14px */
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.125rem; /* 18px */
+  height: 1.125rem;
+  color: rgba(217, 212, 198, 0.4);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+/* Textarea variante */
+.input-dark.input-textarea {
+  padding-top: 0.875rem;
+  resize: none;
+  min-height: 100px;
+}
+
+.input-dark.input-textarea + .input-icon {
+  top: 1rem;
+  transform: none;
+}
+
+/* Input base — light theme (admin) */
+.input-light {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  background: #ffffff;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.5rem;
+  color: #1E293B;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input-light:focus {
+  outline: none;
+  border-color: #4F46E5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+.input-light.input-error {
+  border-color: #EF4444;
+}
+
+/* ── Button System ──────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-weight: 500;
+  font-size: var(--text-sm);
+  line-height: 1;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn-sm  { min-height: 36px; padding: 0 1rem;   border-radius: 0.5rem;   font-size: var(--text-xs); }
+.btn-md  { min-height: 44px; padding: 0 1.25rem; border-radius: 0.75rem; }
+.btn-lg  { min-height: 52px; padding: 0 1.75rem; border-radius: 0.875rem; font-size: var(--text-base); }
+.btn-xl  { min-height: 60px; padding: 0 2.25rem; border-radius: 1rem;     font-size: var(--text-lg); }
+
+.btn-primary {
+  background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 50%, #C084FC 100%);
+  color: #ffffff;
+  box-shadow: 0 0 20px rgba(201, 60, 255, 0.2);
+}
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 0 30px rgba(201, 60, 255, 0.35);
+}
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid rgba(217, 212, 198, 0.15);
+  color: rgba(217, 212, 198, 0.8);
+}
+.btn-ghost:hover:not(:disabled) {
+  border-color: rgba(217, 212, 198, 0.3);
+  color: #D9D4C6;
+  background: rgba(217, 212, 198, 0.05);
+}
+
+.btn-admin-primary {
+  background: #4F46E5;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.3);
+}
+.btn-admin-primary:hover:not(:disabled) { background: #4338CA; }
+
+.btn-admin-ghost {
+  background: transparent;
+  border: 1px solid #E2E8F0;
+  color: #475569;
+}
+.btn-admin-ghost:hover:not(:disabled) {
+  border-color: #CBD5E1;
+  background: #F8FAFC;
+}
+
+.btn-admin-danger { background: #EF4444; color: #ffffff; }
+.btn-admin-danger:hover:not(:disabled) { background: #DC2626; }
+
+/* ── Calendar Responsive ────────────────────────────────────── */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: clamp(2px, 0.5vw, 6px);
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  font-size: clamp(0.688rem, 2vw, 0.875rem); /* 11px→14px fluido */
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Mínimo touch target mesmo em telas pequenas */
+@media (max-width: 380px) {
+  .calendar-grid { gap: 2px; }
+  .calendar-day { border-radius: 0.375rem; }
+}
+
+/* ── Admin Tables ───────────────────────────────────────────── */
+.admin-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 0.75rem;
+  border: 1px solid #E2E8F0;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+}
+
+.admin-table thead th {
+  position: sticky;
+  top: 0;
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+  padding: 0.75rem 1rem;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  text-align: left;
+  z-index: 1;
+}
+
+.admin-table tbody td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid #F1F5F9;
+  font-size: var(--text-sm);
+  color: #334155;
+  vertical-align: middle;
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table tbody tr:hover td {
+  background: #F8FAFC;
+}
+
+/* Coluna primária (nome) — negrito */
+.admin-table .col-primary {
+  font-weight: 600;
+  color: #1E293B;
+}
+
+/* Coluna secundária (data, tipo) */
+.admin-table .col-secondary {
+  color: #64748B;
+}
+
+/* Coluna de ação — sem quebra */
+.admin-table .col-action {
+  white-space: nowrap;
+  width: 1%;
+}
+
+/* Hide on mobile (colunas menos críticas) */
+@media (max-width: 768px) {
+  .admin-table .col-hide-mobile { display: none; }
+}
+
+/* ── Status Badges ──────────────────────────────────────────── */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.status-badge svg {
+  width: 0.75rem;
+  height: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* Estados */
+.status-pendente    { background: rgba(251, 191, 36, 0.12); color: #B45309; border: 1px solid rgba(251, 191, 36, 0.3); }
+.status-confirmado  { background: rgba(16, 185, 129, 0.10); color: #065F46; border: 1px solid rgba(16, 185, 129, 0.25); }
+.status-cancelado   { background: rgba(239, 68, 68, 0.10);  color: #991B1B; border: 1px solid rgba(239, 68, 68, 0.2); }
+.status-concluido   { background: rgba(99, 102, 241, 0.10); color: #3730A3; border: 1px solid rgba(99, 102, 241, 0.2); }
+.status-nao-compareceu { background: rgba(107, 114, 128, 0.10); color: #374151; border: 1px solid rgba(107, 114, 128, 0.2); }
+
+/* Versão dark (site público) */
+.status-badge-dark.status-pendente    { background: rgba(251, 191, 36, 0.08);  color: #FCD34D; border: 1px solid rgba(251, 191, 36, 0.15); }
+.status-badge-dark.status-confirmado  { background: rgba(16, 185, 129, 0.08);  color: #34D399; border: 1px solid rgba(16, 185, 129, 0.15); }
+.status-badge-dark.status-cancelado   { background: rgba(239, 68, 68, 0.08);   color: #F87171; border: 1px solid rgba(239, 68, 68, 0.15); }
+.status-badge-dark.status-concluido   { background: rgba(167, 139, 250, 0.08); color: #A78BFA; border: 1px solid rgba(167, 139, 250, 0.15); }
+
+/* ── Admin Sidebar ──────────────────────────────────────────── */
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.5rem;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: #64748B;
+  transition: background 0.15s ease, color 0.15s ease;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.admin-nav-item:hover {
+  background: #F1F5F9;
+  color: #1E293B;
+}
+
+.admin-nav-item.active {
+  background: rgba(79, 70, 229, 0.08);
+  color: #4F46E5;
+  font-weight: 600;
+}
+
+.admin-nav-item svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+}
+
+/* Indicador de ativo na borda esquerda */
+.admin-nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  bottom: 20%;
+  width: 3px;
+  background: #4F46E5;
+  border-radius: 0 2px 2px 0;
+}
+
+.admin-nav-item { position: relative; }
+
+/* ── Step Indicator ─────────────────────────────────────────── */
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 2rem;
+}
+
+.step-node {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: background 0.3s ease, border-color 0.3s ease;
+  border: 2px solid rgba(217, 212, 198, 0.15);
+  color: rgba(217, 212, 198, 0.4);
+  background: transparent;
+}
+
+.step-node.done {
+  background: rgba(167, 139, 250, 0.2);
+  border-color: #A855F7;
+  color: #A855F7;
+}
+
+.step-node.current {
+  background: #A855F7;
+  border-color: #A855F7;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
+}
+
+.step-connector {
+  flex: 1;
+  height: 2px;
+  background: rgba(217, 212, 198, 0.1);
+  transition: background 0.3s ease;
+}
+
+.step-connector.done {
+  background: rgba(168, 85, 247, 0.4);
+}

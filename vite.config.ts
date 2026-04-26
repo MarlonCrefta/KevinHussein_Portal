@@ -1,33 +1,36 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+  },
   plugins: [react()],
   server: {
     port: 3000,
     open: true
   },
   esbuild: {
-    drop: ['console', 'debugger'],
+    drop: ['debugger'],
+    pure: ['console.log', 'console.debug', 'console.info'],
   },
   build: {
-    // Chunks menores = carregamento mais rápido
     chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {
-        // Separar vendors em chunks independentes (cache eficiente)
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-motion': ['framer-motion'],
           'vendor-date': ['date-fns'],
           'vendor-icons': ['lucide-react'],
         },
-      },
+      } as any,
     },
-    // Minificação com esbuild (built-in, sem dependência extra)
     minify: 'esbuild',
-    // Source maps desligados em produção (menor tamanho)
     sourcemap: false,
   },
 })

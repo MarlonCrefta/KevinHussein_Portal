@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Clock, Calendar, User, Phone, Mail, MessageSquare, Check, ArrowLeft, CreditCard, AlertCircle, CheckCircle } from 'lucide-react'
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, isBefore, startOfToday, getDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import BaroqueModernBackground from '../components/ui/BaroqueModernBackground'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams, useLocation } from 'react-router-dom'
 import { slotsApi, bookingsApi, clientsApi, Slot, Client, Booking } from '../services/api'
 
 // Validação de CPF
@@ -113,6 +113,8 @@ interface FormData {
 
 export default function BookingMeeting() {
   const [searchParams] = useSearchParams()
+  const location = useLocation()
+  const cpfFromState = (location.state as any)?.cpf || ''
   const flowTypeParam = searchParams.get('tipo') as BookingFlowType | null
   const bookingFlowType: BookingFlowType = flowTypeParam && flowConfig[flowTypeParam] ? flowTypeParam : 'reuniao'
   const bookingFlow = flowConfig[bookingFlowType]
@@ -128,7 +130,9 @@ export default function BookingMeeting() {
     name: '',
     phone: '',
     email: '',
-    cpf: '',
+    cpf: cpfFromState
+      ? cpfFromState.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+      : '',
     message: ''
   })
   const [cpfError, setCpfError] = useState<string>('')
@@ -157,6 +161,44 @@ export default function BookingMeeting() {
     }
     loadSlots()
   }, [bookingFlow.slotType])
+
+  // Buscar histórico do cliente quando CPF vem pré-preenchido via route state
+  useEffect(() => {
+    if (!cpfFromState || cpfFromState.length !== 11) return
+    if (!validateCPF(cpfFromState)) return
+
+    const lookupClient = async () => {
+      try {
+        const [clientResponse, bookingsResponse] = await Promise.all([
+          clientsApi.findByCpf(cpfFromState).catch(() => null),
+          bookingsApi.getByCpf(cpfFromState).catch(() => null)
+        ])
+
+        const detectedClient = clientResponse?.success
+          ? clientResponse.data
+          : (bookingsResponse?.success ? bookingsResponse.data.client : null)
+
+        if (detectedClient) {
+          setClientHistory(detectedClient)
+          setShowHistory(true)
+        }
+
+        if (bookingsResponse?.success && bookingsResponse.data.bookings) {
+          const activeBookings = bookingsResponse.data.bookings.filter(
+            (b: Booking) => b.type === bookingFlow.slotType && ['pendente', 'confirmado'].includes(b.status)
+          )
+          if (activeBookings.length > 0) {
+            setExistingBookings(activeBookings)
+            setShowExistingBooking(true)
+          }
+        }
+      } catch {
+        // Cliente não encontrado
+      }
+    }
+
+    lookupClient()
+  }, [cpfFromState]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Carregar horários disponíveis quando data é selecionada
   useEffect(() => {
@@ -438,32 +480,21 @@ export default function BookingMeeting() {
           </p>
         </motion.div>
 
-        {/* Progress Steps */}
+        {/* Step Indicator */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="flex justify-center mb-8"
+          className="mb-8"
         >
-          <div className="flex items-center gap-2">
-            {steps.map((step, index) => (
-              <div key={step.id} className="flex items-center">
-                <div className={`
-                  w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300
-                  ${index <= currentStepIndex 
-                    ? 'bg-neon-muted text-neon' 
-                    : 'bg-graphite-light text-bone-faded'
-                  }
-                `}>
-                  <step.icon size={16} />
+          <div className="step-indicator">
+            {[1, 2, 3, 4].map((n, i) => (
+              <Fragment key={n}>
+                <div className={`step-node ${(currentStepIndex + 1) > n ? 'done' : (currentStepIndex + 1) === n ? 'current' : ''}`}>
+                  {(currentStepIndex + 1) > n ? '✓' : n}
                 </div>
-                {index < steps.length - 1 && (
-                  <div className={`
-                    w-8 h-0.5 mx-1 transition-colors duration-300
-                    ${index < currentStepIndex ? 'bg-neon/50' : 'bg-bone/10'}
-                  `} />
-                )}
-              </div>
+                {i < 3 && <div className={`step-connector ${(currentStepIndex + 1) > n + 1 ? 'done' : ''}`} />}
+              </Fragment>
             ))}
           </div>
         </motion.div>
@@ -518,7 +549,7 @@ export default function BookingMeeting() {
                 </div>
 
                 {/* Calendar Grid */}
-                <div className="grid grid-cols-7 gap-1">
+                <div className="calendar-grid">
                   {paddedDays.map((day, index) => {
                     if (!day) {
                       return <div key={`empty-${index}`} className="aspect-square" />
@@ -539,9 +570,9 @@ export default function BookingMeeting() {
                         onClick={() => handleDateSelect(day)}
                         disabled={isDisabled}
                         className={`
-                          aspect-square rounded-lg flex flex-col items-center justify-center text-sm font-medium
+                          calendar-day rounded-lg flex flex-col items-center justify-center
                           transition-all duration-200 relative
-                          ${isDisabled 
+                          ${isDisabled
                             ? isPreferredDay && isCurrentMonth && !isBefore(day, today)
                               ? 'text-bone-faded/50 cursor-not-allowed bg-neon/5 border border-neon/10'
                               : 'text-bone-faded/40 cursor-not-allowed bg-graphite/20' 
@@ -682,7 +713,7 @@ export default function BookingMeeting() {
                         required
                         autoComplete="name"
                         placeholder="Seu nome"
-                        className="w-full pl-12 pr-4 py-3 rounded-xl bg-graphite border border-bone/10 text-bone placeholder:text-bone-faded/50 focus:outline-none focus:border-neon/40 focus:ring-1 focus:ring-neon/20 transition-all duration-200"
+                        className="input-dark"
                         style={{ colorScheme: 'dark' }}
                       />
                     </div>
@@ -703,11 +734,7 @@ export default function BookingMeeting() {
                         required
                         autoComplete="tel"
                         placeholder="(41) 99999-9999"
-                        className={`w-full pl-12 pr-4 py-3 rounded-xl bg-graphite border text-bone placeholder:text-bone-faded/50 focus:outline-none focus:ring-1 transition-all duration-200 ${
-                          phoneError 
-                            ? 'border-red-500/40 focus:border-red-500/60 focus:ring-red-500/20' 
-                            : 'border-bone/10 focus:border-neon/40 focus:ring-neon/20'
-                        }`}
+                        className={`input-dark${phoneError ? ' input-error' : ''}`}
                         style={{ colorScheme: 'dark' }}
                       />
                     </div>
@@ -738,7 +765,7 @@ export default function BookingMeeting() {
                         required
                         autoComplete="email"
                         placeholder="seu@email.com"
-                        className="w-full pl-12 pr-4 py-3 rounded-xl bg-graphite border border-bone/10 text-bone placeholder:text-bone-faded/50 focus:outline-none focus:border-neon/40 focus:ring-1 focus:ring-neon/20 transition-all duration-200"
+                        className="input-dark"
                         style={{ colorScheme: 'dark' }}
                       />
                     </div>
@@ -761,11 +788,7 @@ export default function BookingMeeting() {
                         inputMode="numeric"
                         placeholder="000.000.000-00"
                         maxLength={14}
-                        className={`w-full pl-12 pr-4 py-3 rounded-xl bg-graphite border text-bone placeholder:text-bone-faded/50 focus:outline-none focus:ring-1 transition-all duration-200 ${
-                          cpfError 
-                            ? 'border-red-500/40 focus:border-red-500/60 focus:ring-red-500/20' 
-                            : 'border-bone/10 focus:border-neon/40 focus:ring-neon/20'
-                        }`}
+                        className={`input-dark${cpfError ? ' input-error' : ''}`}
                         style={{ colorScheme: 'dark' }}
                       />
                     </div>
@@ -878,7 +901,7 @@ export default function BookingMeeting() {
                         onChange={handleFormChange}
                         rows={3}
                         placeholder="Descreva brevemente..."
-                        className="w-full pl-12 pr-4 py-3 rounded-xl bg-graphite border border-bone/10 text-bone placeholder:text-bone-faded/50 focus:outline-none focus:border-neon/40 focus:ring-1 focus:ring-neon/20 transition-all duration-200 resize-none"
+                        className="input-dark input-textarea"
                         style={{ colorScheme: 'dark' }}
                       />
                     </div>
@@ -904,7 +927,7 @@ export default function BookingMeeting() {
                         exit={{ opacity: 0, y: 10 }}
                         type="submit"
                         disabled={isLoading}
-                        className="w-full flex items-center justify-center gap-2 px-6 py-4 mt-6 text-base font-semibold text-white bg-neon hover:bg-neon/90 active:bg-neon/80 rounded-xl transition-colors duration-200 shadow-neon disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="btn btn-primary btn-md w-full mt-6 rounded-xl"
                       >
                         {isLoading ? (
                           <>
@@ -963,7 +986,7 @@ export default function BookingMeeting() {
 
                 {/* Summary */}
                 <div className="rounded-xl bg-graphite border border-bone/10 p-4 text-left mb-8 max-w-xs mx-auto">
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <div className="flex items-center gap-3">
                       <Calendar size={16} className="text-neon" />
                       <span className="text-bone-muted text-sm">

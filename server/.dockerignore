@@ -1,0 +1,10 @@
+node_modules
+data
+auth_info_baileys
+auth_info_baileys_diag
+logs
+.env
+.env.local
+*.md
+*.log
+.git

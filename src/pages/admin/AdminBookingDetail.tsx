@@ -1,18 +1,19 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  ArrowLeft, 
-  Calendar, 
-  Clock, 
-  User, 
-  Phone, 
-  Mail, 
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  User,
+  Phone,
+  Mail,
   MessageSquare,
   CheckCircle,
   XCircle,
   Ban,
-  Clock3,
+  CheckCheck,
+  UserX,
   Save,
   Trash2,
   Edit3,
@@ -36,11 +37,11 @@ import reputationService from '../../services/reputationService'
 type BookingStatus = 'pendente' | 'confirmado' | 'cancelado' | 'concluido' | 'nao_compareceu'
 
 const statusOptions: { value: BookingStatus; label: string; icon: any; color: string }[] = [
-  { value: 'pendente', label: 'Pendente', icon: Clock3, color: 'text-amber-600' },
+  { value: 'pendente', label: 'Pendente', icon: Clock, color: 'text-amber-600' },
   { value: 'confirmado', label: 'Confirmado', icon: CheckCircle, color: 'text-emerald-600' },
-  { value: 'concluido', label: 'Concluído', icon: CheckCircle, color: 'text-blue-600' },
+  { value: 'concluido', label: 'Concluído', icon: CheckCheck, color: 'text-blue-600' },
   { value: 'cancelado', label: 'Cancelado', icon: XCircle, color: 'text-red-600' },
-  { value: 'nao_compareceu', label: 'Não compareceu', icon: Ban, color: 'text-orange-600' },
+  { value: 'nao_compareceu', label: 'Não compareceu', icon: UserX, color: 'text-orange-600' },
 ]
 
 const defaultTimeSlots = ['10:00', '12:00', '14:00', '16:00', '18:00']
@@ -93,6 +94,7 @@ export default function AdminBookingDetail() {
   const [newBookingTime, setNewBookingTime] = useState('')
   const [isCreatingBooking, setIsCreatingBooking] = useState(false)
   const [bookingCreatedSuccess, setBookingCreatedSuccess] = useState(false)
+  const [createBookingError, setCreateBookingError] = useState('')
 
   useEffect(() => {
     const loadBooking = async () => {
@@ -103,7 +105,7 @@ export default function AdminBookingDetail() {
           const data = await getById(id)
           if (data) {
             setBooking(data)
-            setNotes(data.notes || '')
+            setNotes(data.adminNotes || '')
             setSelectedStatus(data.status as BookingStatus)
             
             // Tentar encontrar o cliente pelo CPF ou telefone
@@ -191,7 +193,7 @@ export default function AdminBookingDetail() {
     if (!booking) return
     
     setIsSaving(true)
-    const updated = await updateBooking(booking.id, { notes })
+    const updated = await updateBooking(booking.id, { adminNotes: notes })
     if (updated) {
       setBooking(updated)
       setIsEditing(false)
@@ -212,6 +214,7 @@ export default function AdminBookingDetail() {
     if (!booking || !newBookingDate || !newBookingTime) return
 
     setIsCreatingBooking(true)
+    setCreateBookingError('')
     try {
       const typeLabel = newBookingType === 'reuniao' ? 'Reunião' : newBookingType === 'teste_anatomico' ? 'Teste Anatômico' : 'Sessão'
       const response = await bookingsApi.create({
@@ -236,6 +239,7 @@ export default function AdminBookingDetail() {
       }
     } catch (error) {
       console.error('Erro ao criar agendamento:', error)
+      setCreateBookingError('Erro ao criar agendamento. Tente novamente.')
     } finally {
       setIsCreatingBooking(false)
     }
@@ -275,7 +279,7 @@ export default function AdminBookingDetail() {
 
   const bookingDate = parseISO(booking.date)
   const currentStatus = statusOptions.find(s => s.value === booking.status)
-  const StatusIcon = currentStatus?.icon || Clock3
+  const StatusIcon = currentStatus?.icon || Clock
 
   return (
     <div className="min-h-[100dvh] pt-20 lg:pt-8 pb-16 px-4 sm:px-6 bg-slate-50">
@@ -311,6 +315,12 @@ export default function AdminBookingDetail() {
               <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800 tracking-tight">
                 {booking.clientName}
               </h1>
+              <div className="mt-2">
+                <span className={`status-badge status-${booking.status.replace('_', '-')}`}>
+                  <StatusIcon size={10} />
+                  {currentStatus?.label}
+                </span>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               {/* WhatsApp Button */}
@@ -996,6 +1006,9 @@ export default function AdminBookingDetail() {
                 {/* Footer */}
                 {!bookingCreatedSuccess && (
                   <div className="p-5 border-t border-gray-100 bg-gray-50">
+                    {createBookingError && (
+                      <p className="text-red-600 text-sm mb-3">{createBookingError}</p>
+                    )}
                     <button
                       onClick={handleCreateNewBooking}
                       disabled={!newBookingDate || !newBookingTime || isCreatingBooking}

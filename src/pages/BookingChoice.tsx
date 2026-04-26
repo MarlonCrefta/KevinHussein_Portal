@@ -93,7 +93,7 @@ export default function BookingChoice() {
       persistClientAccess(cleanCpf)
 
       if (accessType) {
-        navigate(`/agendar/reuniao?tipo=${accessType}&cpf=${cleanCpf}`)
+        navigate(`/agendar/reuniao?tipo=${accessType}`, { state: { cpf: cleanCpf } })
       }
     } catch {
       setIsClientLoggedIn(false)
@@ -108,7 +108,7 @@ export default function BookingChoice() {
 
     if (isClientLoggedIn) {
       const cleanCpf = cpfInput.replace(/\D/g, '')
-      navigate(`/agendar/reuniao?tipo=${targetType}&cpf=${cleanCpf}`)
+      navigate(`/agendar/reuniao?tipo=${targetType}`, { state: { cpf: cleanCpf } })
       return
     }
 
@@ -173,7 +173,7 @@ export default function BookingChoice() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: easeOutQuint }}
-          className="text-center mb-12"
+          className="text-center mb-8"
         >
           <span 
             className="inline-block px-4 py-1.5 rounded-full text-xs font-medium mb-5 tracking-wide"
@@ -212,7 +212,7 @@ export default function BookingChoice() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1, ease: easeOutQuint }}
-          className="mb-4"
+          className="mb-6"
         >
           <Link to="/agendar/reuniao" className="block group">
             <div className="liquid-glass-card-highlight relative p-7 sm:p-8 transition-all duration-300 hover:scale-[1.01]">
@@ -276,7 +276,7 @@ export default function BookingChoice() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.16, ease: easeOutQuint }}
-          className="mb-4"
+          className="mb-6"
           id="cliente-login"
         >
           <div
@@ -328,12 +328,7 @@ export default function BookingChoice() {
                   }
                 }}
                 placeholder="000.000.000-00"
-                className="w-full h-11 sm:h-12 px-4 rounded-xl border text-sm"
-                style={{
-                  background: 'rgba(255,255,255,0.05)',
-                  borderColor: cpfError ? 'rgba(248, 113, 113, 0.65)' : 'rgba(255,255,255,0.2)',
-                  color: '#F5F3FF',
-                }}
+                className={`input-dark no-icon${cpfError ? ' input-error' : ''}`}
               />
 
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
@@ -346,12 +341,7 @@ export default function BookingChoice() {
                   <button
                     type="button"
                     onClick={clearClientAccess}
-                    className="h-10 sm:h-11 text-xs px-3.5 rounded-xl border"
-                    style={{
-                      borderColor: 'rgba(255,255,255,0.16)',
-                      color: '#C4B5FD',
-                      background: 'rgba(255,255,255,0.03)',
-                    }}
+                    className="btn btn-ghost btn-sm rounded-xl"
                   >
                     Trocar CPF
                   </button>
@@ -360,14 +350,8 @@ export default function BookingChoice() {
                   type="button"
                   onClick={() => validateRestrictedAccess()}
                   disabled={isCheckingAccess !== null}
-                  className="h-10 sm:h-11 inline-flex items-center justify-center gap-1.5 min-w-[136px] sm:min-w-[144px] px-4 rounded-xl text-sm font-semibold tracking-wide"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.96) 0%, rgba(168, 85, 247, 0.96) 55%, rgba(196, 132, 252, 0.96) 100%)',
-                    border: '1px solid rgba(233, 213, 255, 0.45)',
-                    boxShadow: '0 10px 24px rgba(124, 58, 237, 0.32), inset 0 1px 0 rgba(255,255,255,0.2)',
-                    color: '#FFFFFF',
-                    opacity: isCheckingAccess ? 0.7 : 1,
-                  }}
+                  className="btn btn-primary btn-lg min-w-[136px] sm:min-w-[144px] tracking-wide rounded-xl"
+                  style={{ opacity: isCheckingAccess ? 0.7 : 1 }}
                 >
                   {isCheckingAccess ? (
                     'Validando'
@@ -423,7 +407,7 @@ export default function BookingChoice() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2, ease: easeOutQuint }}
-          className="mb-4"
+          className="mb-6"
         >
           <button
             type="button"

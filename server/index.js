@@ -10,10 +10,8 @@
  * - Scheduler de mensagens automáticas
  */
 
-import express from 'express';
-import cors from 'cors';
-import rateLimit from 'express-rate-limit';
-import { createServer } from 'http';
+// App Express (middlewares, rotas, error handlers)
+import app, { setWhatsAppService } from './app.js';
 
 // Configuração
 import config from './src/config/env.js';
@@ -22,23 +20,11 @@ import { initializeDatabase, closeDatabase } from './src/config/database.js';
 // Models (para inicialização)
 import { UserModel, MessageTemplateModel } from './src/models/index.js';
 
-// Middleware
-import { errorHandler, notFoundHandler } from './src/middleware/index.js';
-
-// Rotas
-import routes, { setWhatsAppService } from './src/routes/index.js';
-
 // Serviços
 import { whatsappService, schedulerService } from './src/services/index.js';
 
 // Logger estruturado
 import logger from './src/config/logger.js';
-
-// ============================================
-// INICIALIZAÇÃO
-// ============================================
-
-const app = express();
 
 logger.info('╔══════════════════════════════════════════════════════════╗');
 logger.info('║       KEVIN HUSSEIN TATTOO STUDIO - API SERVER          ║');
@@ -46,109 +32,14 @@ logger.info('║                     Versão 2.0.0                        ║');
 logger.info('╚══════════════════════════════════════════════════════════╝');
 
 // ============================================
-// MIDDLEWARES GLOBAIS
-// ============================================
-
-// CORS
-app.use(cors({
-  origin: config.frontendUrl,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
-
-// Parse JSON
-app.use(express.json({ limit: '10mb' }));
-
-// Rate Limiting — adaptável por ambiente
-const isProd = config.env === 'production';
-const limiter = rateLimit({
-  windowMs: config.rateLimit.windowMs,
-  max: isProd ? 100 : 1000, // Restritivo em produção
-  message: {
-    success: false,
-    error: 'Muitas requisições. Tente novamente em alguns minutos.',
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use('/api/', limiter);
-
-// Rate limiting para login (anti brute-force)
-const loginLimiter = rateLimit({
-  windowMs: isProd ? 15 * 60 * 1000 : 1 * 60 * 1000,
-  max: isProd ? 5 : 50,
-  message: {
-    success: false,
-    error: 'Muitas tentativas de login. Tente novamente mais tarde.',
-  },
-});
-app.use('/api/auth/login', loginLimiter);
-
-// Rate limiting para WhatsApp (anti-spam)
-const whatsappLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minuto
-  max: isProd ? 10 : 50,
-  message: {
-    success: false,
-    error: 'Limite de mensagens WhatsApp atingido. Aguarde.',
-  },
-});
-app.use('/api/whatsapp/send', whatsappLimiter);
-app.use('/api/messages/send-template', whatsappLimiter);
-
-// Cache headers para recursos estáticos da API
-app.use('/api', (req, res, next) => {
-  if (req.method === 'GET') {
-    res.set('Cache-Control', 'private, max-age=30');
-  }
-  next();
-});
-
-// Log de requisições (apenas desenvolvimento)
-if (!isProd) {
-  app.use((req, res, next) => {
-    logger.debug({ method: req.method, url: req.url }, 'request');
-    next();
-  });
-}
-
-// ============================================
-// ROTAS
-// ============================================
-
-// API v1
-app.use('/api', routes);
-
-// Rota raiz
-app.get('/', (req, res) => {
-  res.json({
-    name: 'Kevin Hussein Tattoo Studio API',
-    version: '2.0.0',
-    status: 'running',
-    docs: '/api/health',
-  });
-});
-
-// ============================================
-// TRATAMENTO DE ERROS
-// ============================================
-
-// 404 - Rota não encontrada
-app.use(notFoundHandler);
-
-// Handler de erros global
-app.use(errorHandler);
-
-// ============================================
 // INICIALIZAÇÃO DO SERVIDOR
 // ============================================
 
 async function startServer() {
   try {
-    // 1. Inicializar banco de dados
+    // 1. Inicializar banco de dados (executa migrations pendentes)
     logger.info('Configurando banco de dados...');
-    initializeDatabase();
+    await initializeDatabase();
 
     // 2. Criar admin padrão se não existir
     const adminCount = UserModel.count();
@@ -237,8 +128,8 @@ async function startServer() {
       }, 10000);
     }
 
-    process.on('SIGINT', () => { gracefulShutdown('SIGINT'); });
-    process.on('SIGTERM', () => { gracefulShutdown('SIGTERM'); });
+    process.once('SIGINT', () => gracefulShutdown('SIGINT'));
+    process.once('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
   } catch (error) {
     logger.fatal({ err: error }, 'Erro ao iniciar servidor');

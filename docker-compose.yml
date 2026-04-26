@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Backend API + WhatsApp
   backend:
@@ -9,7 +7,7 @@ services:
     container_name: kevin-studio-backend
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "127.0.0.1:3001:3001"
     environment:
       - NODE_ENV=production
       - PORT=3001
@@ -17,7 +15,7 @@ services:
       - FRONTEND_URL=${FRONTEND_URL}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
-      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-1d}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-15m}
       - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN:-30d}
       - ADMIN_USERNAME=${ADMIN_USERNAME}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
@@ -29,6 +27,7 @@ services:
     volumes:
       - ./server/data:/app/data
       - ./server/auth_info_baileys:/app/auth_info_baileys
+      - ./server/backups:/app/backups
     networks:
       - kevin-network
     healthcheck:

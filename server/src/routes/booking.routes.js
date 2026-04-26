@@ -15,6 +15,7 @@ import {
   asyncHandler,
   ApiError 
 } from '../middleware/index.js';
+import logger from '../config/logger.js';
 
 const router = Router();
 
@@ -22,7 +23,7 @@ const router = Router();
  * GET /api/bookings
  * Lista agendamentos (autenticado = todos, público = apenas do cliente)
  */
-router.get('/', optionalAuth, asyncHandler(async (req, res) => {
+router.get('/', authenticate, asyncHandler(async (req, res) => {
   const { status, type, search, startDate, endDate, limit, offset } = req.query;
 
   const bookings = BookingModel.findAll({
@@ -35,7 +36,7 @@ router.get('/', optionalAuth, asyncHandler(async (req, res) => {
     offset: parseInt(offset) || 0,
   });
 
-  const total = BookingModel.count({ status, type });
+  const total = BookingModel.count({ status, type, search, startDate, endDate });
 
   res.json({
     success: true,
@@ -79,7 +80,7 @@ router.get('/upcoming', authenticate, (req, res) => {
  * GET /api/bookings/date/:date
  * Agendamentos por data
  */
-router.get('/date/:date', optionalAuth, (req, res) => {
+router.get('/date/:date', authenticate, (req, res) => {
   const { date } = req.params;
   const bookings = BookingModel.findByDate(date);
 
@@ -91,9 +92,11 @@ router.get('/date/:date', optionalAuth, (req, res) => {
 
 /**
  * GET /api/bookings/cpf/:cpf
- * Buscar agendamentos por CPF (público)
+ * Buscar agendamentos por CPF
+ * - Autenticado (admin): retorna dados completos
+ * - Público: retorna apenas tipo, status e datas (sem PII)
  */
-router.get('/cpf/:cpf', asyncHandler(async (req, res) => {
+router.get('/cpf/:cpf', optionalAuth, asyncHandler(async (req, res) => {
   const { cpf } = req.params;
   const cleanCpf = cpf.replace(/\D/g, '');
 
@@ -101,18 +104,34 @@ router.get('/cpf/:cpf', asyncHandler(async (req, res) => {
     throw ApiError.badRequest('CPF inválido');
   }
 
-  // Usar método específico para buscar por CPF
   const bookings = BookingModel.findByCpf(cleanCpf);
-
-  // Buscar cliente para informações de reputação
   const client = ClientModel.findByCpf(cleanCpf);
+
+  // Admin autenticado: retorno completo
+  if (req.user) {
+    return res.json({
+      success: true,
+      data: { bookings, client: client || null },
+    });
+  }
+
+  // Público: retorno mínimo sem PII
+  const safeBookings = bookings.map(b => ({
+    id: b.id,
+    type: b.type,
+    status: b.status,
+    date: b.date,
+    time: b.time,
+  }));
+
+  const safeClient = client ? {
+    name: client.name,
+    reputation: client.reputation,
+  } : null;
 
   res.json({
     success: true,
-    data: {
-      bookings,
-      client: client || null,
-    },
+    data: { bookings: safeBookings, client: safeClient },
   });
 }));
 
@@ -120,7 +139,7 @@ router.get('/cpf/:cpf', asyncHandler(async (req, res) => {
  * GET /api/bookings/:id
  * Detalhes de um agendamento
  */
-router.get('/:id', optionalAuth, asyncHandler(async (req, res) => {
+router.get('/:id', authenticate, asyncHandler(async (req, res) => {
   const { id } = req.params;
   const booking = BookingModel.findById(id);
 
@@ -145,7 +164,7 @@ router.post('/', validate(bookingSchemas.create), asyncHandler(async (req, res) 
   } = req.body;
   const normalizedCpf = clientCpf ? String(clientCpf).replace(/\D/g, '') : null;
 
-  console.log('📝 Criando agendamento:', { type, date, time, clientName, clientPhone, clientCpf });
+  logger.info({ type, date, time, clientName }, 'Criando agendamento');
 
   // Transação atômica: cliente + booking + slot (tudo ou nada)
   const booking = runTransaction(() => {
