@@ -551,6 +551,14 @@ body { font-size: var(--text-base); }
   border-color: #EF4444;
 }
 
+/* Variantes de padding para inputs com ícone interno */
+.input-light.has-icon-l {
+  padding-left: 2.75rem; /* 44px — ícone em left-4 (16px) + 18px + 10px gap */
+}
+.input-light.has-icon-r {
+  padding-right: 2.75rem;
+}
+
 /* ── Button System ──────────────────────────────────────────── */
 .btn {
   display: inline-flex;

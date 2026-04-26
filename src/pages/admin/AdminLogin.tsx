@@ -77,7 +77,7 @@ export default function AdminLogin() {
                   required
                   placeholder="Digite seu usuário"
                   autoComplete="username"
-                  className="input-light pl-12 pr-4"
+                  className="input-light has-icon-l"
                 />
               </div>
             </div>
@@ -95,7 +95,7 @@ export default function AdminLogin() {
                   required
                   placeholder="Digite sua senha"
                   autoComplete="current-password"
-                  className="input-light pl-12 pr-12"
+                  className="input-light has-icon-l has-icon-r"
                 />
                 <button
                   type="button"
