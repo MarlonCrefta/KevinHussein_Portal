@@ -16,15 +16,15 @@ const navItems = [
 export default function AdminLayout() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, isAuthenticated, logout } = useAuthContext()
+  const { user, isAuthenticated, isLoading, logout } = useAuthContext()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
-  // Redirect se não autenticado (exceto na página de login)
+  // Redirect se não autenticado (exceto na página de login) — aguarda auth check terminar
   useEffect(() => {
-    if (!isAuthenticated && location.pathname !== '/admin') {
+    if (!isLoading && !isAuthenticated && location.pathname !== '/admin') {
       navigate('/admin')
     }
-  }, [isAuthenticated, location.pathname, navigate])
+  }, [isLoading, isAuthenticated, location.pathname, navigate])
 
   useEffect(() => {
     setIsSidebarOpen(false)
