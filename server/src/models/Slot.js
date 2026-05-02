@@ -40,15 +40,17 @@ export const SlotModel = {
       VALUES (?, ?, ?, ?, ?, 1, ?)
     `);
 
+    let created = 0;
     const insertMany = db.transaction((slots) => {
       const now = new Date().toISOString();
       for (const slot of slots) {
-        insert.run(uuidv4(), slot.date, slot.time, slot.type, slot.duration || 60, now);
+        const result = insert.run(uuidv4(), slot.date, slot.time, slot.type, slot.duration || 60, now);
+        created += result.changes;
       }
     });
 
     insertMany(slots);
-    return slots.length;
+    return { created, skipped: slots.length - created };
   },
 
   /**

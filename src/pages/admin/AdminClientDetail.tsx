@@ -1,13 +1,13 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  ArrowLeft, 
-  Calendar, 
-  Clock, 
-  User, 
-  Phone, 
-  Mail, 
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  User,
+  Phone,
+  Mail,
   MessageSquare,
   CheckCircle,
   XCircle,
@@ -18,21 +18,16 @@ import {
   Star,
   AlertTriangle,
   TrendingUp,
-  Image,
   FileText,
   Shield,
   Trash2,
-  Eye,
   X,
-  Upload,
-  Camera,
   Plus
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { clientsApi, bookingsApi, Client, Booking } from '../../services/api'
-
-type BookingStatus = 'pendente' | 'confirmado' | 'cancelado' | 'concluido' | 'nao_compareceu'
+import { clientsApi, bookingsApi, Client, Booking, BookingStatus } from '../../services/api'
+import reputationService from '../../services/reputationService'
 
 const statusConfig: Record<BookingStatus, { label: string; icon: any; color: string; bg: string }> = {
   pendente: { label: 'Pendente', icon: Clock3, color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200' },
@@ -42,56 +37,24 @@ const statusConfig: Record<BookingStatus, { label: string; icon: any; color: str
   nao_compareceu: { label: 'Não compareceu', icon: Ban, color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200' },
 }
 
-const reputationConfig: Record<string, { label: string; color: string; bg: string; icon: any; description: string }> = {
-  alta: { 
-    label: 'VIP', 
-    color: 'text-amber-600', 
-    bg: 'bg-amber-50 border-amber-200',
-    icon: Star,
-    description: 'Cliente exemplar, sempre comparece'
-  },
-  boa: { 
-    label: 'Regular', 
-    color: 'text-emerald-600', 
-    bg: 'bg-emerald-50 border-emerald-200',
-    icon: TrendingUp,
-    description: 'Cliente confiável'
-  },
-  neutro: { 
-    label: 'Novo', 
-    color: 'text-blue-600', 
-    bg: 'bg-blue-50 border-blue-200',
-    icon: User,
-    description: 'Primeiro agendamento'
-  },
-  baixa: { 
-    label: 'Atenção', 
-    color: 'text-red-600', 
-    bg: 'bg-red-50 border-red-200',
-    icon: AlertTriangle,
-    description: 'Histórico de faltas'
-  },
-}
-
-interface TattooImage {
-  id: string
-  url: string
-  description: string
-  date: string
+const reputationIcons: Record<string, { icon: any; description: string }> = {
+  alta: { icon: Star, description: 'Cliente exemplar, sempre comparece' },
+  boa: { icon: TrendingUp, description: 'Cliente confiável' },
+  neutro: { icon: User, description: 'Primeiro agendamento' },
+  baixa: { icon: AlertTriangle, description: 'Histórico de faltas' },
 }
 
 export default function AdminClientDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [client, setClient] = useState<Client | null>(null)
   const [bookings, setBookings] = useState<Booking[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState<'info' | 'bookings' | 'documents' | 'tattoos' | 'progress'>('info')
-  
+  const [activeTab, setActiveTab] = useState<'info' | 'bookings' | 'documents' | 'progress'>('info')
+
   // Edit form
   const [editForm, setEditForm] = useState({
     name: '',
@@ -100,10 +63,6 @@ export default function AdminClientDetail() {
     cpf: '',
     notes: ''
   })
-
-  // Tattoo images (simulated - would come from API)
-  const [tattooImages, setTattooImages] = useState<TattooImage[]>([])
-  const [selectedImage, setSelectedImage] = useState<TattooImage | null>(null)
 
   // New booking modal
   const [showNewBooking, setShowNewBooking] = useState(false)
@@ -116,6 +75,9 @@ export default function AdminClientDetail() {
   // Delete client
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // Feedback de ações
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const defaultTimeSlots = [
     '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00'
@@ -141,11 +103,7 @@ export default function AdminClientDetail() {
           notes: response.data.notes || ''
         })
         
-        // Load tattoo images from localStorage (temporary - would come from API)
-        const savedImages = localStorage.getItem(`tattoos_${id}`)
-        if (savedImages) {
-          setTattooImages(JSON.parse(savedImages))
-        }
+
       } else {
         navigate('/admin/clientes')
       }
@@ -160,62 +118,25 @@ export default function AdminClientDetail() {
   const handleSave = async () => {
     if (!client) return
     setIsSaving(true)
+    setActionError(null)
     try {
       const response = await clientsApi.update(client.id, editForm)
       if (response.success) {
         setClient({ ...client, ...editForm })
         setIsEditing(false)
       }
-    } catch (error) {
-      console.error('Erro ao salvar:', error)
+    } catch (error: any) {
+      setActionError(error.message || 'Erro ao salvar. Tente novamente.')
     } finally {
       setIsSaving(false)
     }
-  }
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files || !client) return
-    
-    Array.from(files).forEach(file => {
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        const newImage: TattooImage = {
-          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-          url: event.target?.result as string,
-          description: '',
-          date: new Date().toISOString()
-        }
-        
-        setTattooImages(prev => {
-          const updated = [...prev, newImage]
-          // Save to localStorage
-          localStorage.setItem(`tattoos_${client.id}`, JSON.stringify(updated))
-          return updated
-        })
-      }
-      reader.readAsDataURL(file)
-    })
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
-  }
-
-  const handleDeleteImage = (imageId: string) => {
-    if (!client) return
-    setTattooImages(prev => {
-      const updated = prev.filter(img => img.id !== imageId)
-      localStorage.setItem(`tattoos_${client.id}`, JSON.stringify(updated))
-      return updated
-    })
-    setSelectedImage(null)
   }
 
   const handleCreateBooking = async () => {
     if (!client || !newBookingDate || !newBookingTime) return
 
     setIsCreatingBooking(true)
+    setActionError(null)
     try {
       const response = await bookingsApi.create({
         type: newBookingType,
@@ -230,7 +151,6 @@ export default function AdminClientDetail() {
 
       if (response.success) {
         setBookingSuccess(true)
-        // Reload client to get updated bookings
         setTimeout(async () => {
           setShowNewBooking(false)
           setNewBookingDate('')
@@ -239,8 +159,8 @@ export default function AdminClientDetail() {
           await loadClient()
         }, 1500)
       }
-    } catch (error) {
-      console.error('Erro ao criar agendamento:', error)
+    } catch (error: any) {
+      setActionError(error.message || 'Erro ao criar agendamento. Tente novamente.')
     } finally {
       setIsCreatingBooking(false)
     }
@@ -250,16 +170,17 @@ export default function AdminClientDetail() {
     if (!client) return
 
     setIsDeleting(true)
+    setActionError(null)
     try {
       const response = await clientsApi.delete(client.id)
       if (response.success) {
         navigate('/admin/clientes')
       }
-    } catch (error) {
-      console.error('Erro ao deletar cliente:', error)
+    } catch (error: any) {
+      setActionError(error.message || 'Erro ao excluir cliente. Tente novamente.')
+      setShowDeleteConfirm(false)
     } finally {
       setIsDeleting(false)
-      setShowDeleteConfirm(false)
     }
   }
 
@@ -300,7 +221,13 @@ export default function AdminClientDetail() {
 
   if (!client) return null
 
-  const reputation = reputationConfig[client.reputation] || reputationConfig.novo
+  const reputationKey = client.reputation || 'neutro'
+  const reputation = {
+    label: reputationService.getReputationLabel(reputationKey),
+    color: reputationService.getReputationColor(reputationKey),
+    bg: reputationService.getReputationBgColor(reputationKey),
+    ...(reputationIcons[reputationKey] ?? reputationIcons.neutro),
+  }
   const ReputationIcon = reputation.icon
 
   // Stats
@@ -316,6 +243,20 @@ export default function AdminClientDetail() {
 
   return (
     <div className="p-4 lg:p-8 pt-20 lg:pt-8">
+      {actionError && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-4 flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm"
+        >
+          <X size={16} className="flex-shrink-0" />
+          <span>{actionError}</span>
+          <button onClick={() => setActionError(null)} className="ml-auto text-red-400 hover:text-red-600">
+            <X size={14} />
+          </button>
+        </motion.div>
+      )}
+
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <button
@@ -378,12 +319,12 @@ export default function AdminClientDetail() {
         </div>
 
         {/* Stats Bar */}
-        <div className="grid grid-cols-4 border-t border-gray-100">
-          <div className="p-4 text-center border-r border-gray-100">
+        <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-gray-100">
+          <div className="p-4 text-center border-r border-b sm:border-b-0 border-gray-100">
             <p className="text-2xl font-bold text-gray-800">{client.totalBookings}</p>
             <p className="text-xs text-gray-500">Total</p>
           </div>
-          <div className="p-4 text-center border-r border-gray-100">
+          <div className="p-4 text-center border-b sm:border-b-0 sm:border-r border-gray-100">
             <p className="text-2xl font-bold text-emerald-600">{client.completedBookings}</p>
             <p className="text-xs text-gray-500">Concluídos</p>
           </div>
@@ -405,7 +346,6 @@ export default function AdminClientDetail() {
             { id: 'info', label: 'Info', icon: User },
             { id: 'bookings', label: 'Agenda', icon: Calendar },
             { id: 'documents', label: 'Docs', icon: FileText },
-            { id: 'tattoos', label: 'Fotos', icon: Image },
             { id: 'progress', label: 'Progresso', icon: TrendingUp },
           ].map(tab => (
             <button
@@ -746,83 +686,6 @@ export default function AdminClientDetail() {
             </div>
           )}
 
-          {/* Tattoos Tab */}
-          {activeTab === 'tattoos' && (
-            <div className="space-y-4">
-              {/* Upload Button */}
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-800">
-                  Fotos das Tattoos ({tattooImages.length})
-                </h3>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
-                >
-                  <Upload className="w-4 h-4" />
-                  Adicionar Fotos
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-              </div>
-
-              {/* Gallery */}
-              {tattooImages.length === 0 ? (
-                <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-xl">
-                  <Camera className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500 mb-2">Nenhuma foto adicionada</p>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-indigo-600 text-sm hover:underline"
-                  >
-                    Clique para adicionar
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {tattooImages.map(image => (
-                    <motion.div
-                      key={image.id}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="relative group aspect-square rounded-xl overflow-hidden border border-gray-200"
-                    >
-                      <img
-                        src={image.url}
-                        alt="Tattoo"
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => setSelectedImage(image)}
-                          className="p-2 bg-white rounded-full hover:bg-gray-100 transition-colors"
-                        >
-                          <Eye className="w-4 h-4 text-gray-700" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteImage(image.id)}
-                          className="p-2 bg-red-500 rounded-full hover:bg-red-600 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4 text-white" />
-                        </button>
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
-                        <p className="text-white text-xs">
-                          {format(parseISO(image.date), 'dd/MM/yyyy')}
-                        </p>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Progress Tab */}
           {activeTab === 'progress' && (
             <div className="space-y-6">
@@ -916,35 +779,6 @@ export default function AdminClientDetail() {
           )}
         </div>
       </div>
-
-      {/* Image Viewer Modal */}
-      <AnimatePresence>
-        {selectedImage && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-            onClick={() => setSelectedImage(null)}
-          >
-            <button
-              onClick={() => setSelectedImage(null)}
-              className="absolute top-4 right-4 p-2 text-white hover:bg-white/20 rounded-full transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <motion.img
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              src={selectedImage.url}
-              alt="Tattoo"
-              className="max-w-full max-h-[90vh] object-contain rounded-lg"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* New Booking Modal */}
       <AnimatePresence>

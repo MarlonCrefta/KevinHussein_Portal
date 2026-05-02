@@ -58,6 +58,7 @@ export default function AdminDashboard() {
   const [clients, setClients] = useState<Client[]>([])
   const [whatsappReady, setWhatsappReady] = useState(false)
   const [weekOffset, setWeekOffset] = useState(0)
+  const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
     const loadData = async () => {
@@ -72,6 +73,7 @@ export default function AdminDashboard() {
         if (clientsRes.success) setClients(clientsRes.data.clients)
         if (wpRes.success) setWhatsappReady(wpRes.data.isReady)
       } catch (e) { console.error(e) }
+      finally { setIsLoaded(true) }
     }
     loadData()
   }, [fetchStats])
@@ -120,13 +122,14 @@ export default function AdminDashboard() {
     const prevMonth = allBookings.filter(b => inRange(b, prevMonthStart, prevMonthEnd))
 
     const concluded = (arr: Booking[]) => arr.filter(b => b.status === 'concluido').length
-    const confirmed = (arr: Booking[]) => arr.filter(b => b.status === 'confirmado' || b.status === 'concluido').length
     const noShows = (arr: Booking[]) => arr.filter(b => b.status === 'nao_compareceu').length
     const pending = allBookings.filter(b => b.status === 'pendente').length
 
-    const attendanceRate = (arr: Booking[]) => {
-      const conf = confirmed(arr)
-      return conf > 0 ? Math.round((concluded(arr) / conf) * 100) : 0
+    const attendanceData = (arr: Booking[]) => {
+      const done = concluded(arr)
+      const missed = noShows(arr)
+      const total = done + missed
+      return { rate: total > 0 ? Math.round((done / total) * 100) : null, done, total }
     }
 
     const delta = (curr: number, prev: number) => {
@@ -134,9 +137,19 @@ export default function AdminDashboard() {
       return Math.round(((curr - prev) / prev) * 100)
     }
 
+    const thisAttendance = attendanceData(thisMonth)
+    const prevAttendance = attendanceData(prevMonth)
+
     return {
       totalMes: { value: thisMonth.length, delta: delta(thisMonth.length, prevMonth.length) },
-      taxa: { value: attendanceRate(thisMonth), delta: delta(attendanceRate(thisMonth), attendanceRate(prevMonth)) },
+      taxa: {
+        rate: thisAttendance.rate,
+        done: thisAttendance.done,
+        total: thisAttendance.total,
+        delta: thisAttendance.rate !== null && prevAttendance.rate !== null
+          ? delta(thisAttendance.rate, prevAttendance.rate)
+          : null,
+      },
       noShows: { value: noShows(thisMonth), delta: delta(noShows(thisMonth), noShows(prevMonth)) },
       pendentes: { value: pending, delta: null },
     }
@@ -198,6 +211,27 @@ export default function AdminDashboard() {
           </div>
         </motion.div>
 
+        {/* Empty state — banco vazio */}
+        {isLoaded && allBookings.length === 0 && (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="mb-6">
+            <div className="rounded-2xl border-2 border-dashed border-violet-200 bg-violet-50/60 p-8 text-center">
+              <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-violet-100 flex items-center justify-center">
+                <Calendar size={26} className="text-violet-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-1">Nenhum agendamento ainda</h3>
+              <p className="text-gray-500 text-sm mb-5 max-w-xs mx-auto">
+                Publique horários disponíveis para que os clientes possam agendar online.
+              </p>
+              <Link
+                to="/admin/vagas"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-colors"
+              >
+                <Plus size={16} /> Publicar Horários
+              </Link>
+            </div>
+          </motion.div>
+        )}
+
         {/* KPIs do Mês */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           {/* Total do mês */}
@@ -216,10 +250,16 @@ export default function AdminDashboard() {
               <p className="text-xs text-gray-500 font-medium">Comparecimento</p>
               <DeltaBadge delta={kpis.taxa.delta} />
             </div>
-            <p className={`text-2xl font-bold ${kpis.taxa.value >= 80 ? 'text-emerald-600' : kpis.taxa.value >= 50 ? 'text-amber-600' : 'text-red-500'}`}>
-              {kpis.taxa.value}%
+            {kpis.taxa.rate === null ? (
+              <p className="text-2xl font-bold text-gray-300">—</p>
+            ) : (
+              <p className={`text-2xl font-bold ${kpis.taxa.rate >= 80 ? 'text-emerald-600' : kpis.taxa.rate >= 50 ? 'text-amber-600' : 'text-red-500'}`}>
+                {kpis.taxa.rate}%
+              </p>
+            )}
+            <p className="text-[10px] text-gray-400 mt-0.5">
+              {kpis.taxa.total > 0 ? `${kpis.taxa.done} de ${kpis.taxa.total} concluídas` : 'sem dados este mês'}
             </p>
-            <p className="text-[10px] text-gray-400 mt-0.5">taxa este mês</p>
           </div>
 
           {/* No-shows */}

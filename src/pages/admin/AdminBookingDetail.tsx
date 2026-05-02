@@ -31,10 +31,8 @@ import {
 import { format, parseISO, addDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useBookings } from '../../hooks'
-import { Booking, Client, clientsApi, messagesApi, bookingsApi } from '../../services/api'
+import { Booking, Client, BookingStatus, clientsApi, messagesApi, bookingsApi, slotsApi } from '../../services/api'
 import reputationService from '../../services/reputationService'
-
-type BookingStatus = 'pendente' | 'confirmado' | 'cancelado' | 'concluido' | 'nao_compareceu'
 
 const statusOptions: { value: BookingStatus; label: string; icon: any; color: string }[] = [
   { value: 'pendente', label: 'Pendente', icon: Clock, color: 'text-amber-600' },
@@ -44,7 +42,6 @@ const statusOptions: { value: BookingStatus; label: string; icon: any; color: st
   { value: 'nao_compareceu', label: 'Não compareceu', icon: UserX, color: 'text-orange-600' },
 ]
 
-const defaultTimeSlots = ['10:00', '12:00', '14:00', '16:00', '18:00']
 
 const bookingTypeConfig: Record<string, {
   label: string; gradient: string; bg: string; bgIcon: string; color: string;
@@ -92,6 +89,8 @@ export default function AdminBookingDetail() {
   const [newBookingType, setNewBookingType] = useState<'reuniao' | 'teste_anatomico' | 'sessao'>('sessao')
   const [newBookingDate, setNewBookingDate] = useState('')
   const [newBookingTime, setNewBookingTime] = useState('')
+  const [availableSlotTimes, setAvailableSlotTimes] = useState<string[]>([])
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false)
   const [isCreatingBooking, setIsCreatingBooking] = useState(false)
   const [bookingCreatedSuccess, setBookingCreatedSuccess] = useState(false)
   const [createBookingError, setCreateBookingError] = useState('')
@@ -108,20 +107,18 @@ export default function AdminBookingDetail() {
             setNotes(data.adminNotes || '')
             setSelectedStatus(data.status as BookingStatus)
             
-            // Tentar encontrar o cliente pelo CPF ou telefone
+            // Tentar encontrar o cliente — CPF primeiro, telefone como fallback real
             try {
+              let clientRes = null
               if (data.clientCpf) {
-                const clientRes = await clientsApi.findByCpf(data.clientCpf)
-                if (clientRes.success && clientRes.data) {
-                  setClientId(clientRes.data.id)
-                  setClientData(clientRes.data)
-                }
-              } else if (data.clientPhone) {
-                const clientRes = await clientsApi.findByPhone(data.clientPhone)
-                if (clientRes.success && clientRes.data) {
-                  setClientId(clientRes.data.id)
-                  setClientData(clientRes.data)
-                }
+                clientRes = await clientsApi.findByCpf(data.clientCpf).catch(() => null)
+              }
+              if (!clientRes?.data && data.clientPhone) {
+                clientRes = await clientsApi.findByPhone(data.clientPhone).catch(() => null)
+              }
+              if (clientRes?.success && clientRes.data) {
+                setClientId(clientRes.data.id)
+                setClientData(clientRes.data)
               }
             } catch (err) {
               // Cliente não encontrado, não é um erro crítico
@@ -130,7 +127,6 @@ export default function AdminBookingDetail() {
             setLoadError('Agendamento não encontrado')
           }
         } catch (err: any) {
-          console.error('Erro ao carregar agendamento:', err)
           setLoadError(err.message || 'Erro ao carregar agendamento')
         } finally {
           setIsLoadingBooking(false)
@@ -148,7 +144,7 @@ export default function AdminBookingDetail() {
       // Usar template de lembrete configurado
       const templateType = 'reminder'
       const formattedDate = format(parseISO(booking.date), "d 'de' MMMM", { locale: ptBR })
-      const bookingTypeLabel = booking.type === 'reuniao' ? 'Reunião' : booking.type === 'teste_anatomico' ? 'Teste Anatômico' : booking.type === 'sessao' ? 'Sessão' : 'Retoque'
+      const bookingTypeLabel = booking.type === 'reuniao' ? 'Reunião' : booking.type === 'teste_anatomico' ? 'Teste Anatômico' : 'Sessão'
       
       await messagesApi.sendWithTemplate(templateType, booking.clientPhone, {
         id: booking.id,
@@ -164,7 +160,6 @@ export default function AdminBookingDetail() {
       setMessageSent(true)
       setTimeout(() => setMessageSent(false), 3000)
     } catch (err) {
-      console.error('Erro ao enviar mensagem:', err)
       // Fallback: abrir WhatsApp Web
       const phone = booking.clientPhone.replace(/\D/g, '')
       const message = encodeURIComponent(`Olá ${booking.clientName}! Aqui é do Kevin Hussein Tattoo Studio.`)
@@ -210,6 +205,32 @@ export default function AdminBookingDetail() {
     }
   }
 
+  // Busca slots disponíveis quando data ou tipo mudam no modal
+  useEffect(() => {
+    if (!showScheduleModal || !newBookingDate) {
+      setAvailableSlotTimes([])
+      setNewBookingTime('')
+      return
+    }
+    let cancelled = false
+    const fetchSlots = async () => {
+      setIsLoadingSlots(true)
+      setNewBookingTime('')
+      try {
+        const res = await slotsApi.getAvailable(newBookingDate, newBookingType)
+        if (!cancelled) {
+          setAvailableSlotTimes(res.success ? res.data.map(s => s.time) : [])
+        }
+      } catch {
+        if (!cancelled) setAvailableSlotTimes([])
+      } finally {
+        if (!cancelled) setIsLoadingSlots(false)
+      }
+    }
+    fetchSlots()
+    return () => { cancelled = true }
+  }, [newBookingDate, newBookingType, showScheduleModal])
+
   const handleCreateNewBooking = async () => {
     if (!booking || !newBookingDate || !newBookingTime) return
 
@@ -237,9 +258,8 @@ export default function AdminBookingDetail() {
           setBookingCreatedSuccess(false)
         }, 2000)
       }
-    } catch (error) {
-      console.error('Erro ao criar agendamento:', error)
-      setCreateBookingError('Erro ao criar agendamento. Tente novamente.')
+    } catch (error: any) {
+      setCreateBookingError(error.message || 'Erro ao criar agendamento. Tente novamente.')
     } finally {
       setIsCreatingBooking(false)
     }
@@ -798,7 +818,7 @@ export default function AdminBookingDetail() {
                   <button
                     onClick={() => {
                       setIsEditing(false)
-                      setNotes(booking.notes || '')
+                      setNotes(booking.adminNotes || '')
                     }}
                     disabled={isSaving}
                     className="px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-gray-500 hover:text-gray-800 hover:border-gray-200 transition-all"
@@ -809,13 +829,50 @@ export default function AdminBookingDetail() {
               </div>
             ) : (
               <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                {booking.notes ? (
-                  <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">{booking.notes}</p>
+                {booking.adminNotes ? (
+                  <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">{booking.adminNotes}</p>
                 ) : (
                   <p className="text-gray-400 italic">Nenhuma nota adicionada ainda</p>
                 )}
               </div>
             )}
+          </motion.div>
+
+          {/* WhatsApp Notifications */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.45 }}
+            className="rounded-2xl p-5 sm:p-6 bg-white border border-gray-200"
+          >
+            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <Send size={20} className="text-emerald-600" />
+              Notificações WhatsApp
+            </h2>
+            <div className="grid grid-cols-2 gap-3">
+              <div className={`flex items-center gap-3 p-3 rounded-xl border ${booking.confirmationSent ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-200'}`}>
+                {booking.confirmationSent
+                  ? <CheckCircle size={18} className="text-emerald-600 flex-shrink-0" />
+                  : <Clock size={18} className="text-gray-400 flex-shrink-0" />}
+                <div>
+                  <p className={`text-sm font-medium ${booking.confirmationSent ? 'text-emerald-700' : 'text-gray-500'}`}>Confirmação</p>
+                  <p className={`text-xs ${booking.confirmationSent ? 'text-emerald-600/80' : 'text-gray-400'}`}>
+                    {booking.confirmationSent ? 'Enviada' : 'Pendente'}
+                  </p>
+                </div>
+              </div>
+              <div className={`flex items-center gap-3 p-3 rounded-xl border ${booking.reminderSent ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-200'}`}>
+                {booking.reminderSent
+                  ? <CheckCircle size={18} className="text-emerald-600 flex-shrink-0" />
+                  : <Clock size={18} className="text-gray-400 flex-shrink-0" />}
+                <div>
+                  <p className={`text-sm font-medium ${booking.reminderSent ? 'text-emerald-700' : 'text-gray-500'}`}>Lembrete</p>
+                  <p className={`text-xs ${booking.reminderSent ? 'text-emerald-600/80' : 'text-gray-400'}`}>
+                    {booking.reminderSent ? 'Enviado' : 'Pendente'}
+                  </p>
+                </div>
+              </div>
+            </div>
           </motion.div>
 
           {/* Metadata */}
@@ -983,12 +1040,22 @@ export default function AdminBookingDetail() {
                           <select
                             value={newBookingTime}
                             onChange={(e) => setNewBookingTime(e.target.value)}
-                            className={`w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 ${bookingTypeConfig[newBookingType].ringColor}`}
+                            disabled={!newBookingDate || isLoadingSlots}
+                            className={`w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed ${bookingTypeConfig[newBookingType].ringColor}`}
                           >
-                            <option value="">Selecione...</option>
-                            {defaultTimeSlots.map(time => (
-                              <option key={time} value={time}>{time}</option>
-                            ))}
+                            {!newBookingDate && <option value="">Selecione a data primeiro</option>}
+                            {newBookingDate && isLoadingSlots && <option value="">Buscando horários...</option>}
+                            {newBookingDate && !isLoadingSlots && availableSlotTimes.length === 0 && (
+                              <option value="">Sem vagas disponíveis nesta data</option>
+                            )}
+                            {newBookingDate && !isLoadingSlots && availableSlotTimes.length > 0 && (
+                              <>
+                                <option value="">Selecione...</option>
+                                {availableSlotTimes.map(time => (
+                                  <option key={time} value={time}>{time}</option>
+                                ))}
+                              </>
+                            )}
                           </select>
                         </div>
                       </div>
@@ -1011,9 +1078,9 @@ export default function AdminBookingDetail() {
                     )}
                     <button
                       onClick={handleCreateNewBooking}
-                      disabled={!newBookingDate || !newBookingTime || isCreatingBooking}
+                      disabled={!newBookingDate || !newBookingTime || isCreatingBooking || isLoadingSlots}
                       className={`w-full py-3.5 rounded-xl font-semibold transition-all ${
-                        newBookingDate && newBookingTime && !isCreatingBooking
+                        newBookingDate && newBookingTime && !isCreatingBooking && !isLoadingSlots
                           ? bookingTypeConfig[newBookingType].btnColor
                           : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                       }`}

@@ -175,11 +175,12 @@ export const BookingModel = {
   },
 
   /**
-   * Busca agendamento ativo duplicado (mesmo cliente e mesmo horário/tipo)
+   * Busca agendamento ativo duplicado (mesmo CPF, tipo e horário)
+   * Usa apenas CPF para evitar falso positivo quando famílias compartilham telefone.
    */
-  findActiveDuplicate({ type, date, time, clientCpf, clientPhone }) {
+  findActiveDuplicate({ type, date, time, clientCpf }) {
     const cleanCpf = String(clientCpf || '').replace(/\D/g, '');
-    const cleanPhone = String(clientPhone || '').replace(/\D/g, '');
+    if (!cleanCpf) return null;
 
     const stmt = db.prepare(`
       SELECT * FROM bookings
@@ -187,15 +188,27 @@ export const BookingModel = {
         AND date = ?
         AND time = ?
         AND status IN ('pendente', 'confirmado')
-        AND (
-          REPLACE(REPLACE(REPLACE(REPLACE(client_cpf, '.', ''), '-', ''), '(', ''), ')', '') = ?
-          OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(client_phone, '.', ''), '-', ''), '(', ''), ')', ''), ' ', ''), '+', '') = ?
-        )
+        AND REPLACE(REPLACE(REPLACE(REPLACE(client_cpf, '.', ''), '-', ''), '(', ''), ')', '') = ?
       ORDER BY created_at DESC
       LIMIT 1
     `);
 
-    return stmt.get(type, date, time, cleanCpf, cleanPhone);
+    return stmt.get(type, date, time, cleanCpf);
+  },
+
+  /**
+   * Busca agendamentos por telefone exato (sem LIKE)
+   */
+  findByClientPhone(phone) {
+    const cleanPhone = String(phone || '').replace(/\D/g, '');
+    if (!cleanPhone) return [];
+
+    const stmt = db.prepare(`
+      SELECT * FROM bookings
+      WHERE REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(client_phone, '.', ''), '-', ''), '(', ''), ')', ''), ' ', ''), '+', '') = ?
+      ORDER BY date DESC, time DESC
+    `);
+    return stmt.all(cleanPhone);
   },
 
   /**
@@ -238,9 +251,14 @@ export const BookingModel = {
   /**
    * Lista todos agendamentos com filtros
    */
-  findAll({ limit = 50, offset = 0, status, type, search, startDate, endDate } = {}) {
+  findAll({ limit = 50, offset = 0, status, type, search, startDate, endDate, clientId } = {}) {
     let query = 'SELECT * FROM bookings WHERE 1=1';
     const params = [];
+
+    if (clientId) {
+      query += ' AND client_id = ?';
+      params.push(clientId);
+    }
 
     if (status) {
       query += ' AND status = ?';

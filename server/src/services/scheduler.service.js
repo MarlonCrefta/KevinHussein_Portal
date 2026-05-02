@@ -127,7 +127,7 @@ class SchedulerService {
             clientEmail: booking.client_email,
             date: this.formatDate(booking.date),
             time: booking.time,
-            type: booking.type === 'reuniao' ? 'Reunião' : booking.type === 'sessao' ? 'Sessão' : 'Retoque',
+            type: booking.type === 'reuniao' ? 'Reunião' : booking.type === 'teste_anatomico' ? 'Teste Anatômico' : 'Sessão',
             clientMessage: booking.client_message,
           });
 
@@ -183,7 +183,7 @@ class SchedulerService {
         clientEmail: booking.client_email,
         date: this.formatDate(booking.date),
         time: booking.time,
-        type: booking.type === 'reuniao' ? 'Reunião' : booking.type === 'sessao' ? 'Sessão' : 'Retoque',
+        type: booking.type === 'reuniao' ? 'Reunião' : booking.type === 'teste_anatomico' ? 'Teste Anatômico' : 'Sessão',
         clientMessage: booking.client_message,
       });
 

@@ -211,7 +211,6 @@ router.post('/', validate(bookingSchemas.create), asyncHandler(async (req, res) 
       date,
       time,
       clientCpf: normalizedCpf,
-      clientPhone,
     });
     if (duplicate) {
       throw ApiError.conflict('Este agendamento já existe e está ativo');
@@ -270,10 +269,30 @@ router.post('/', validate(bookingSchemas.create), asyncHandler(async (req, res) 
  */
 router.put('/:id', authenticate, validate(bookingSchemas.update), asyncHandler(async (req, res) => {
   const { id } = req.params;
-  
+
   const existingBooking = BookingModel.findById(id);
   if (!existingBooking) {
     throw ApiError.notFound('Agendamento não encontrado');
+  }
+
+  const newDate = req.body.date ?? existingBooking.date;
+  const newTime = req.body.time ?? existingBooking.time;
+  const dateOrTimeChanged = newDate !== existingBooking.date || newTime !== existingBooking.time;
+
+  if (dateOrTimeChanged) {
+    const newSlot = SlotModel.findByDateTimeType(newDate, newTime, existingBooking.type);
+    if (!newSlot || !newSlot.is_available) {
+      throw ApiError.conflict('Horário não disponível para a nova data/hora informada');
+    }
+
+    // Liberar slot antigo e ocupar o novo dentro de transação
+    const update = runTransaction(() => {
+      const oldSlot = SlotModel.findByDateTimeType(existingBooking.date, existingBooking.time, existingBooking.type);
+      if (oldSlot) SlotModel.markAsAvailable(oldSlot.id);
+      SlotModel.markAsBooked(newSlot.id, id);
+      return BookingModel.update(id, req.body);
+    });
+    return res.json({ success: true, data: update, message: 'Agendamento atualizado' });
   }
 
   const booking = BookingModel.update(id, req.body);

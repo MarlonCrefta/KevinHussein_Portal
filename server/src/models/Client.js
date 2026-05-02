@@ -97,7 +97,7 @@ export const ClientModel = {
    * Atualiza cliente
    */
   update(id, data) {
-    const allowedFields = ['name', 'email', 'phone', 'cpf', 'reputation', 'notes'];
+    const allowedFields = ['name', 'email', 'phone', 'cpf', 'notes'];
     const updates = [];
     const values = [];
 

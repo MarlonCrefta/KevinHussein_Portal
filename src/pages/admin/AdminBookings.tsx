@@ -23,7 +23,7 @@ import {
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useBookings } from '../../hooks'
-import { Booking, bookingsApi } from '../../services/api'
+import { Booking } from '../../services/api'
 import reputationService from '../../services/reputationService'
 
 type BookingStatus = 'pendente' | 'confirmado' | 'cancelado' | 'concluido' | 'nao_compareceu'
@@ -92,7 +92,7 @@ const TYPE_FILTERS: { value: BookingType | 'all'; label: string }[] = [
 const PAGE_SIZE = 20
 
 export default function AdminBookings() {
-  const { bookings, fetchBookings } = useBookings()
+  const { bookings, fetchBookings, updateStatus } = useBookings()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<BookingStatus | 'all'>('all')
   const [typeFilter, setTypeFilter] = useState<BookingType | 'all'>('all')
@@ -165,12 +165,11 @@ export default function AdminBookings() {
     e.stopPropagation()
     setUpdatingId(booking.id)
     try {
-      await bookingsApi.updateStatus(booking.id, newStatus)
-      await fetchBookings({ limit: 1000 })
+      await updateStatus(booking.id, newStatus)
     } finally {
       setUpdatingId(null)
     }
-  }, [fetchBookings])
+  }, [updateStatus])
 
   return (
     <div className="min-h-[100dvh] pt-20 lg:pt-8 pb-16 px-4 sm:px-6 bg-slate-50">
@@ -296,11 +295,19 @@ export default function AdminBookings() {
               <div className="text-center py-16 px-4 bg-white rounded-xl border border-gray-200">
                 <AlertCircle size={48} className="mx-auto text-gray-300 mb-4" />
                 <p className="text-gray-500 text-lg mb-2">Nenhum agendamento encontrado</p>
-                <p className="text-gray-400 text-sm">
-                  {searchTerm || statusFilter !== 'all' || typeFilter !== 'all'
-                    ? 'Tente ajustar os filtros de busca'
-                    : 'Aguardando novos agendamentos'}
-                </p>
+                {searchTerm || statusFilter !== 'all' || typeFilter !== 'all' ? (
+                  <>
+                    <p className="text-gray-400 text-sm mb-4">Nenhum resultado para os filtros aplicados.</p>
+                    <button
+                      onClick={() => { setSearchTerm(''); setStatusFilter('all'); setTypeFilter('all') }}
+                      className="text-indigo-600 text-sm hover:underline"
+                    >
+                      Limpar filtros
+                    </button>
+                  </>
+                ) : (
+                  <p className="text-gray-400 text-sm">Ainda não há agendamentos cadastrados.</p>
+                )}
               </div>
             ) : (
               <AnimatePresence mode="popLayout">

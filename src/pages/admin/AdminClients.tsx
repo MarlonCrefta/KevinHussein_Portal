@@ -333,7 +333,19 @@ export default function AdminClients() {
           ) : filteredClients.length === 0 ? (
             <div className="bg-white rounded-xl p-8 border border-gray-200 text-center">
               <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">Nenhum cliente encontrado</p>
+              {searchTerm || reputationFilter !== 'all' ? (
+                <>
+                  <p className="text-gray-500 mb-3">Nenhum resultado para os filtros aplicados.</p>
+                  <button
+                    onClick={() => { setSearchTerm(''); setReputationFilter('all') }}
+                    className="text-indigo-600 text-sm hover:underline"
+                  >
+                    Limpar filtros
+                  </button>
+                </>
+              ) : (
+                <p className="text-gray-500">Ainda não há clientes cadastrados.</p>
+              )}
             </div>
           ) : (
             <div className="space-y-2">

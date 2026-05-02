@@ -1,15 +1,17 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Trash2, Calendar, Clock, ChevronLeft, ChevronRight, Check, UserPlus, Search, X, User, Phone, AlertTriangle } from 'lucide-react'
+import { Plus, Trash2, Calendar, Clock, ChevronLeft, ChevronRight, Check, CheckCircle, UserPlus, Search, X, User, Phone, AlertTriangle } from 'lucide-react'
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, getDay, parseISO, isToday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useSlots } from '../../hooks'
-import { clientsApi, bookingsApi, Client, slotsApi } from '../../services/api'
+import { clientsApi, bookingsApi, Client } from '../../services/api'
 
 const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
 type SlotType = 'reuniao' | 'teste_anatomico' | 'sessao'
 
+// Regras de agenda definidas pelo Kevin. Para alterar dias ou horários,
+// editar allowedDays (0=Dom,1=Seg,2=Ter,3=Qua,4=Qui,5=Sex,6=Sáb) e timeSlots abaixo.
 const agendaConfig: Record<SlotType, {
   label: string
   sublabel: string
@@ -69,6 +71,9 @@ export default function AdminSlots() {
   const [selectedTimes, setSelectedTimes] = useState<string[]>([])
   const [selectedType, setSelectedType] = useState<SlotType>('reuniao')
 
+  // Feedback de publicação
+  const [publishResult, setPublishResult] = useState<{ created: number; skipped: number } | null>(null)
+
   // Bulk delete
   const [selectedSlots, setSelectedSlots] = useState<Set<string>>(new Set())
   const [isDeletingBulk, setIsDeletingBulk] = useState(false)
@@ -82,6 +87,7 @@ export default function AdminSlots() {
   const [sessionTime, setSessionTime] = useState('')
   const [isCreatingSession, setIsCreatingSession] = useState(false)
   const [sessionSuccess, setSessionSuccess] = useState(false)
+  const [sessionError, setSessionError] = useState<string | null>(null)
   const [isLoadingClients, setIsLoadingClients] = useState(false)
 
   const activeConfig = agendaConfig[selectedType]
@@ -144,6 +150,7 @@ export default function AdminSlots() {
   const handleCreateSession = async () => {
     if (!selectedClient || !sessionDate || !sessionTime) return
     setIsCreatingSession(true)
+    setSessionError(null)
     try {
       const response = await bookingsApi.create({
         type: 'sessao',
@@ -158,7 +165,11 @@ export default function AdminSlots() {
       if (response.success) {
         setSessionSuccess(true)
         setTimeout(() => { closeSessionModal(); fetchSlots() }, 1500)
+      } else {
+        setSessionError('Não foi possível criar o agendamento. Tente novamente.')
       }
+    } catch (err: any) {
+      setSessionError(err.message || 'Erro ao criar agendamento. Tente novamente.')
     } finally { setIsCreatingSession(false) }
   }
 
@@ -169,6 +180,7 @@ export default function AdminSlots() {
     setSessionTime('')
     setClientSearch('')
     setSessionSuccess(false)
+    setSessionError(null)
   }
 
   const formatPhone = (phone: string) => {
@@ -203,8 +215,10 @@ export default function AdminSlots() {
         duration: activeConfig.duration,
       }))
     )
-    const count = await createMany(slotsToPublish)
-    if (count > 0) {
+    const result = await createMany(slotsToPublish)
+    setPublishResult(result)
+    setTimeout(() => setPublishResult(null), 5000)
+    if (result.created > 0 || result.skipped > 0) {
       await fetchSlots()
       setSelectedDates([])
       setSelectedTimes([])
@@ -218,8 +232,7 @@ export default function AdminSlots() {
   }
 
   const removeSlot = async (id: string) => {
-    const success = await deleteSlot(id)
-    if (success) await fetchSlots()
+    await deleteSlot(id)
   }
 
   // Bulk delete handlers
@@ -250,9 +263,8 @@ export default function AdminSlots() {
     if (!confirmed) return
     setIsDeletingBulk(true)
     try {
-      await Promise.all(toDelete.map(s => slotsApi.delete(s.id)))
+      await Promise.all(toDelete.map(s => deleteSlot(s.id)))
       setSelectedSlots(new Set())
-      await fetchSlots()
     } finally { setIsDeletingBulk(false) }
   }
 
@@ -379,7 +391,7 @@ export default function AdminSlots() {
                         onClick={() => !isDisabled && toggleDate(day)}
                         disabled={isDisabled}
                         className={`
-                          aspect-square w-full rounded-lg flex items-center justify-center text-sm transition-all relative
+                          aspect-square w-full min-h-[2rem] rounded-lg flex items-center justify-center text-sm transition-all relative
                           ${isDisabled
                             ? 'text-gray-300 cursor-not-allowed'
                             : isSelected
@@ -464,6 +476,20 @@ export default function AdminSlots() {
                 <Plus size={20} />
                 Publicar {activeConfig.label}
               </button>
+
+              {publishResult && (
+                <div className={`flex items-center gap-2 p-3 rounded-xl text-sm font-medium mt-3 ${
+                  publishResult.created > 0 ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-amber-50 border border-amber-200 text-amber-700'
+                }`}>
+                  {publishResult.created > 0 ? <CheckCircle size={16} className="flex-shrink-0" /> : <AlertTriangle size={16} className="flex-shrink-0" />}
+                  <span>
+                    {publishResult.created > 0
+                      ? `${publishResult.created} vaga${publishResult.created !== 1 ? 's' : ''} publicada${publishResult.created !== 1 ? 's' : ''}`
+                      : 'Nenhuma vaga nova criada'}
+                    {publishResult.skipped > 0 && ` · ${publishResult.skipped} já existia${publishResult.skipped !== 1 ? 'm' : ''}`}
+                  </span>
+                </div>
+              )}
             </div>
           </motion.div>
 
@@ -710,6 +736,9 @@ export default function AdminSlots() {
 
               {!sessionSuccess && (
                 <div className="p-5 border-t border-gray-100 bg-gray-50">
+                  {sessionError && (
+                    <p className="text-red-600 text-sm mb-3 text-center">{sessionError}</p>
+                  )}
                   <button
                     onClick={handleCreateSession}
                     disabled={!selectedClient || !sessionDate || !sessionTime || isCreatingSession}

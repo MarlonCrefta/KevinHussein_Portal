@@ -95,12 +95,16 @@ router.post('/', authenticate, validate(slotSchemas.create), asyncHandler(async 
 router.post('/bulk', authenticate, validate(slotSchemas.createMany), asyncHandler(async (req, res) => {
   const { slots } = req.body;
 
-  const count = SlotModel.createMany(slots);
+  const { created, skipped } = SlotModel.createMany(slots);
+
+  const parts = [`${created} slot${created !== 1 ? 's' : ''} criado${created !== 1 ? 's' : ''}`];
+  if (skipped > 0) parts.push(`${skipped} já existia${skipped !== 1 ? 'm' : ''}`);
 
   res.status(201).json({
     success: true,
-    message: `${count} slots criados`,
-    count,
+    message: parts.join(', '),
+    count: created,
+    skipped,
   });
 }));
 
@@ -135,11 +139,17 @@ router.delete('/:id', authenticate, asyncHandler(async (req, res) => {
 router.delete('/date/:date', authenticate, asyncHandler(async (req, res) => {
   const { date } = req.params;
 
+  const allSlots = SlotModel.findByDate(date);
+  const occupiedCount = allSlots.filter(s => !s.is_available).length;
   const result = SlotModel.deleteByDate(date);
+
+  const message = result.changes === 0 && occupiedCount > 0
+    ? `Nenhum slot disponível removido (${occupiedCount} slot${occupiedCount > 1 ? 's' : ''} ocupado${occupiedCount > 1 ? 's' : ''} foram preservados)`
+    : `${result.changes} slot${result.changes !== 1 ? 's' : ''} removido${result.changes !== 1 ? 's' : ''}${occupiedCount > 0 ? ` (${occupiedCount} ocupado${occupiedCount > 1 ? 's' : ''} preservado${occupiedCount > 1 ? 's' : ''})` : ''}`;
 
   res.json({
     success: true,
-    message: `${result.changes} slots removidos`,
+    message,
   });
 }));
 

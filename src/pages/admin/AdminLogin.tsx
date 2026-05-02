@@ -19,12 +19,11 @@ export default function AdminLogin() {
     }
   }, [isAuthenticated, navigate])
 
-  // Limpar erro ao mudar campos
+  // Limpar erro ao mudar campos (só quando o usuário digita)
   useEffect(() => {
-    if (authError) {
-      clearError()
-    }
-  }, [username, password, authError, clearError])
+    clearError()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [username, password])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -38,7 +37,7 @@ export default function AdminLogin() {
     setIsSubmitting(false)
   }
 
-  const isLoading = isSubmitting || authLoading
+  const isLoading = isSubmitting
 
   return (
     <div className="min-h-[100dvh] flex items-center justify-center px-4 py-16 bg-slate-50">

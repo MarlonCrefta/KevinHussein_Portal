@@ -224,6 +224,8 @@ function transformBooking(data: any): Booking {
   return transformed as Booking;
 }
 
+export type BookingStatus = 'pendente' | 'confirmado' | 'cancelado' | 'concluido' | 'nao_compareceu'
+
 export interface Booking {
   id: string;
   type: string;
@@ -238,7 +240,6 @@ export interface Booking {
   clientMessage: string;
   clientReputation: string;
   adminNotes: string;
-  notes?: string;
   confirmationSent: boolean;
   reminderSent: boolean;
   createdAt: string;
@@ -246,7 +247,7 @@ export interface Booking {
 }
 
 export interface BookingFormData {
-  type: 'reuniao' | 'teste_anatomico' | 'sessao' | 'retoque';
+  type: 'reuniao' | 'teste_anatomico' | 'sessao';
   date: string;
   time: string;
   duration?: number;
@@ -558,7 +559,7 @@ export const slotsApi = {
   },
 
   async createMany(slots: Array<{ date: string; time: string; type: string; duration?: number }>) {
-    return request<{ success: boolean; count: number }>('/slots/bulk', {
+    return request<{ success: boolean; count: number; skipped: number }>('/slots/bulk', {
       method: 'POST',
       body: JSON.stringify({ slots }),
     });

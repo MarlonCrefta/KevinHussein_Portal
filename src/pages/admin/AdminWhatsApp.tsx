@@ -160,8 +160,7 @@ Até amanhã! 🖤`
           })
         }
       } catch (err) {
-        console.error('Erro ao carregar templates:', err)
-        // Mantém os padrões em caso de erro
+        setError('Não foi possível carregar os templates do servidor. Usando padrões locais.')
       }
     }
     loadTemplates()
@@ -175,7 +174,6 @@ Até amanhã! 🖤`
       await connect()
     } catch (err) {
       setError('Erro ao conectar com o servidor WhatsApp')
-      console.error('Erro:', err)
     } finally {
       setLoading(false)
     }
@@ -187,7 +185,6 @@ Até amanhã! 🖤`
       await disconnect()
     } catch (err) {
       setError('Erro ao desconectar WhatsApp')
-      console.error(err)
     } finally {
       setLoading(false)
     }
@@ -212,27 +209,23 @@ Até amanhã! 🖤`
       const apiType = type === 'completion' ? 'followup' : type
       await messagesApi.updateTemplate(apiType, { enabled: newEnabled })
     } catch (err) {
-      console.error('Erro ao salvar estado do template:', err)
+      setError('Erro ao salvar estado do template')
     }
   }
 
   const handleSaveTemplate = async (type: 'confirmation' | 'completion' | 'reminder', templateContent: string) => {
     try {
-      // Mapear tipo do frontend para o backend
-      // completion no frontend = followup no backend (Pós-Sessão)
       const apiType = type === 'completion' ? 'followup' : type
-      
-      // Salvar via API com o nome correto do campo
       await messagesApi.updateTemplate(apiType, { template: templateContent })
-      
+
       if (type === 'confirmation') setConfirmationTemplate(prev => ({ ...prev, message: templateContent }))
       if (type === 'completion') setCompletionTemplate(prev => ({ ...prev, message: templateContent }))
       if (type === 'reminder') setReminderTemplate(prev => ({ ...prev, message: templateContent }))
-      
+
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 2000)
     } catch (err) {
-      console.error('Erro ao salvar template:', err)
+      setError('Erro ao salvar template. Tente novamente.')
     }
   }
 
@@ -304,7 +297,7 @@ Até amanhã! 🖤`
       const apiType = type === 'completion' ? 'followup' : type
       await messagesApi.updateTemplate(apiType, { template: defaults[type], enabled: true })
     } catch (err) {
-      console.error('Erro ao resetar template:', err)
+      setError('Erro ao resetar template. Tente novamente.')
     }
   }
 
@@ -421,6 +414,7 @@ Até amanhã! 🖤`
                 saveSuccess={saveSuccess}
                 copiedVar={copiedVar}
                 availableVariables={availableVariables}
+                isConnected={isConnected}
                 onToggle={() => handleToggleTemplate('confirmation')}
                 onSave={(template: string) => handleSaveTemplate('confirmation', template)}
                 onReset={() => handleResetTemplate('confirmation')}
@@ -444,6 +438,7 @@ Até amanhã! 🖤`
                 saveSuccess={saveSuccess}
                 copiedVar={copiedVar}
                 availableVariables={availableVariables}
+                isConnected={isConnected}
                 onToggle={() => handleToggleTemplate('completion')}
                 onSave={(template: string) => handleSaveTemplate('completion', template)}
                 onReset={() => handleResetTemplate('completion')}
@@ -467,6 +462,7 @@ Até amanhã! 🖤`
                 saveSuccess={saveSuccess}
                 copiedVar={copiedVar}
                 availableVariables={availableVariables}
+                isConnected={isConnected}
                 onToggle={() => handleToggleTemplate('reminder')}
                 onSave={(template: string) => handleSaveTemplate('reminder', template)}
                 onReset={() => handleResetTemplate('reminder')}
@@ -563,7 +559,7 @@ function ConnectionPanel({ isConnected, qrCode, clientInfo, loading, handleStart
             </div>
             
             <div className="bg-white rounded-xl p-4 mb-6 border-2 border-gray-200 flex justify-center">
-              <img src={qrCode} alt="QR Code" className="w-64 h-64" />
+              <img src={qrCode} alt="QR Code" className="w-full max-w-[16rem] h-auto" />
             </div>
 
             <div className="space-y-3 text-sm text-gray-700">
@@ -714,6 +710,7 @@ interface TemplateEditorProps {
   saveSuccess: boolean
   copiedVar: string | null
   availableVariables: Array<{ name: string; description: string }>
+  isConnected: boolean
   onToggle: () => void
   onSave: (template: string) => void
   onReset: () => void
@@ -727,6 +724,7 @@ function TemplateEditor({
   saveSuccess,
   copiedVar,
   availableVariables,
+  isConnected,
   onToggle,
   onSave,
   onReset,
@@ -900,6 +898,13 @@ function TemplateEditor({
               <Send size={16} className="text-indigo-600" />
               <h3 className="font-semibold text-gray-800">Enviar Teste</h3>
             </div>
+            {!isConnected ? (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-sm">
+                <AlertCircle size={15} className="flex-shrink-0" />
+                Conecte o WhatsApp primeiro para enviar testes.
+              </div>
+            ) : (
+            <>
             <p className="text-xs text-gray-500 mb-3">
               Envia este template com dados fictícios para validar a mensagem antes de ativar.
             </p>
@@ -941,6 +946,8 @@ function TemplateEditor({
                 {testResult.ok ? <Check size={14} /> : <AlertCircle size={14} />}
                 {testResult.msg}
               </motion.div>
+            )}
+            </>
             )}
           </div>
         </div>

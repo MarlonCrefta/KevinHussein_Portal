@@ -19,7 +19,7 @@ interface UseSlotsReturn {
   fetchAvailable: (date: string, type?: string) => Promise<Slot[]>;
   fetchByDate: (date: string) => Promise<Slot[]>;
   createSlot: (data: { date: string; time: string; type: string; duration?: number }) => Promise<Slot | null>;
-  createMany: (slots: Array<{ date: string; time: string; type: string; duration?: number }>) => Promise<number>;
+  createMany: (slots: Array<{ date: string; time: string; type: string; duration?: number }>) => Promise<{ created: number; skipped: number }>;
   deleteSlot: (id: string) => Promise<boolean>;
   deleteByDate: (date: string) => Promise<boolean>;
   clearError: () => void;
@@ -97,21 +97,21 @@ export function useSlots(): UseSlotsReturn {
     return null;
   }, []);
 
-  const createMany = useCallback(async (slotsData: Array<{ date: string; time: string; type: string; duration?: number }>): Promise<number> => {
+  const createMany = useCallback(async (slotsData: Array<{ date: string; time: string; type: string; duration?: number }>): Promise<{ created: number; skipped: number }> => {
     setIsLoading(true);
     setError(null);
 
     try {
       const response = await slotsApi.createMany(slotsData);
       if (response.success) {
-        return response.count;
+        return { created: response.count, skipped: response.skipped ?? 0 };
       }
     } catch (err: any) {
       setError(err.message || 'Erro ao criar vagas');
     } finally {
       setIsLoading(false);
     }
-    return 0;
+    return { created: 0, skipped: 0 };
   }, []);
 
   const deleteSlot = useCallback(async (id: string): Promise<boolean> => {

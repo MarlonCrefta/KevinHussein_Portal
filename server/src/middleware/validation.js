@@ -77,7 +77,7 @@ export const clientSchemas = {
  */
 export const bookingSchemas = {
   create: z.object({
-    type: z.enum(['reuniao', 'teste_anatomico', 'sessao', 'retoque']),
+    type: z.enum(['reuniao', 'teste_anatomico', 'sessao']),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida (formato: YYYY-MM-DD)'),
     time: z.string().regex(/^\d{2}:\d{2}$/, 'Horário inválido (formato: HH:MM)'),
     duration: z.number().min(15).max(480).optional(),
@@ -108,7 +108,7 @@ export const slotSchemas = {
   create: z.object({
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida'),
     time: z.string().regex(/^\d{2}:\d{2}$/, 'Horário inválido'),
-    type: z.enum(['reuniao', 'teste_anatomico', 'sessao', 'retoque']),
+    type: z.enum(['reuniao', 'teste_anatomico', 'sessao']),
     duration: z.number().min(15).max(480).optional(),
   }),
 
@@ -116,7 +116,7 @@ export const slotSchemas = {
     slots: z.array(z.object({
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       time: z.string().regex(/^\d{2}:\d{2}$/),
-      type: z.enum(['reuniao', 'teste_anatomico', 'sessao', 'retoque']),
+      type: z.enum(['reuniao', 'teste_anatomico', 'sessao']),
       duration: z.number().min(15).max(480).optional(),
     })).min(1, 'Deve ter pelo menos 1 slot'),
   }),

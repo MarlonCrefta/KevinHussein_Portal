@@ -101,6 +101,7 @@ export default function AdminLayout() {
                 <Link
                   key={item.href}
                   to={item.href}
+                  onClick={() => setIsSidebarOpen(false)}
                   className={`admin-nav-item${isActive ? ' active' : ''}`}
                 >
                   <item.icon size={18} />

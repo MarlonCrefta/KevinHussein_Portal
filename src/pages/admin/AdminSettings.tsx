@@ -233,9 +233,10 @@ export default function AdminSettings() {
                     type="text"
                     value={studioWhatsapp}
                     onChange={e => setStudioWhatsapp(e.target.value)}
-                    placeholder="(41) 99999-9999"
+                    placeholder="5541999998888"
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-violet-500"
                   />
+                  <p className="mt-1 text-xs text-gray-400">Somente dígitos: DDI + DDD + número (ex: 5541999998888)</p>
                 </div>
               </div>
 
@@ -384,7 +385,7 @@ export default function AdminSettings() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mt-8">
           <button
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || saveSuccess}
             className="w-full py-4 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isSaving ? (

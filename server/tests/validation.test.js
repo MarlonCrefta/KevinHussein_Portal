@@ -202,7 +202,7 @@ describe('Booking Schemas', () => {
   });
 
   it('aceita todos os tipos válidos', () => {
-    const types = ['reuniao', 'teste_anatomico', 'sessao', 'retoque'];
+    const types = ['reuniao', 'teste_anatomico', 'sessao'];
     types.forEach(type => {
       const result = bookingSchemas.create.safeParse({ ...validBooking, type });
       expect(result.success).toBe(true);

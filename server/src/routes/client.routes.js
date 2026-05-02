@@ -54,8 +54,8 @@ router.get('/:id', authenticate, asyncHandler(async (req, res) => {
     throw ApiError.notFound('Cliente não encontrado');
   }
 
-  // Buscar agendamentos do cliente
-  const bookings = BookingModel.findAll({ search: client.phone });
+  // Buscar agendamentos do cliente — query exata por telefone (sem LIKE)
+  const bookings = BookingModel.findByClientPhone(client.phone);
 
   res.json({
     success: true,

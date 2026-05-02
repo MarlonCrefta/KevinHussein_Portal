@@ -97,13 +97,12 @@ describe('API Slots', () => {
           slots: [
             { date: '2026-05-03', time: '09:00', type: 'reuniao' },
             { date: '2026-05-03', time: '10:00', type: 'sessao' },
-            { date: '2026-05-03', time: '14:00', type: 'retoque' },
           ],
         });
 
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
-      expect(res.body.count).toBe(3);
+      expect(res.body.count).toBe(2);
     });
   });
 
